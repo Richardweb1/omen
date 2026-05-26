@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAccount } from "wagmi";
+import ConnectWallet from "./ConnectWallet";
 
 const links = [
   { href: "/",        label: "Home"     },
@@ -13,6 +15,7 @@ const links = [
 
 export default function Nav() {
   const path = usePathname();
+  const { address, isConnected } = useAccount();
 
   return (
     <nav style={{
@@ -68,18 +71,21 @@ export default function Nav() {
         })}
       </div>
 
-      {/* Chain badge */}
-      <div style={{
-        display: "flex", alignItems: "center", gap: "6px",
-        background: "#111", border: "1px solid #222",
-        padding: "4px 10px", borderRadius: "6px",
-      }}>
+      {/* Right side — chain badge + wallet */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
         <div style={{
-          width: "6px", height: "6px",
-          borderRadius: "50%", background: "#16a34a",
-          boxShadow: "0 0 6px #16a34a",
-        }}/>
-        <span style={{ fontSize: "11px", color: "#666" }}>Ritual · 1979</span>
+          display: "flex", alignItems: "center", gap: "6px",
+          background: "#111", border: "1px solid #222",
+          padding: "4px 10px", borderRadius: "6px",
+        }}>
+          <div style={{
+            width: "6px", height: "6px",
+            borderRadius: "50%", background: "#16a34a",
+            boxShadow: "0 0 6px #16a34a",
+          }}/>
+          <span style={{ fontSize: "11px", color: "#666" }}>Ritual · 1979</span>
+        </div>
+        <ConnectWallet />
       </div>
     </nav>
   );

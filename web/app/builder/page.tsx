@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAccount } from "wagmi";
 
 const API = "http://localhost:8000";
 
@@ -12,7 +13,12 @@ const VERDICT_STYLE: any = {
 };
 
 export default function Builder() {
-  const [subject, setSubject]   = useState("");
+  const { address } = useAccount();
+ const [subject, setSubject]   = useState("");
+
+useEffect(() => {
+  if (address) setSubject(address);
+}, [address]);
   const [domain, setDomain]     = useState("counterparty_trust.ritual_trade_v1");
   const [step, setStep]         = useState(0);
   const [loading, setLoading]   = useState(false);

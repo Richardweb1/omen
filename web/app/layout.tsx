@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Nav from "@/components/Nav";
+import WalletProvider from "@/components/WalletProvider";
 
 export const metadata: Metadata = {
   title: "Omen — Attested AI Judgment on Ritual",
@@ -15,10 +16,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen" style={{ background: "#0a0a0a" }}>
-        <Nav />
-        <main style={{ minHeight: "calc(100vh - 60px)" }}>
-          {children}
-        </main>
+        <WalletProvider>
+          <Nav />
+          <main style={{ minHeight: "calc(100vh - 60px)" }}>
+            {children}
+          </main>
+        </WalletProvider>
       </body>
     </html>
   );
