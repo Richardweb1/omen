@@ -1,4 +1,4 @@
-# Omen — Trust Judgment for Ritual Chain
+## Omen  Trust Judgment for Ritual Chain
 
 > *Signs read from evidence. Verdicts that persist. Agents that act on what they know.*
 
