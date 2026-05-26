@@ -1,3 +1,4 @@
+<img width="1226" height="682" alt="omen image " src="https://github.com/user-attachments/assets/628b45bd-7b69-40f7-ad2b-c287a0b3a514" />
 ## Omen  Trust Judgment for Ritual Chain
 
 > *Signs read from evidence. Verdicts that persist. Agents that act on what they know.*
