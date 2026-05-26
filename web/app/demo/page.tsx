@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-const API = "http://localhost:8000";
+const API = '/api';
 
 const SUBJECTS = [
   { address: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", label: "Clean Trade Subject", domain: "counterparty_trust.ritual_trade_v1", action: "trade", expected: "SEALED", description: "Primary clean counterparty benchmark" },

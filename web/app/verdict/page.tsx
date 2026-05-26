@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-const API = "http://localhost:8000";
+const API = '/api';
 
 const DEMO = [
   { address: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", label: "Clean Trade Subject", expected: "SEALED" },

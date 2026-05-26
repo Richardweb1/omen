@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const API = "http://localhost:8000";
+const API = '/api';
 
 export default function Home() {
   const [health, setHealth] = useState<any>(null);
