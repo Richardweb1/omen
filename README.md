@@ -1,6 +1,8 @@
 <img width="1226" height="682" alt="omen image " src="https://github.com/user-attachments/assets/628b45bd-7b69-40f7-ad2b-c287a0b3a514" />
 ## Omen  Trust Judgment for Ritual Chain
 
+**Live:** [omen-ritual.vercel.app](https://omen-ritual.vercel.app) · **GitHub:** [github.com/Richardweb1/omen](https://github.com/Richardweb1/omen) · **Chain:** Ritual testnet
+
 > *Signs read from evidence. Verdicts that persist. Agents that act on what they know.*
 
 ---
