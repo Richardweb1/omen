@@ -1,0 +1,9 @@
+node_modules/
+.env
+cache/
+artifacts/
+typechain-types/
+web/.next/
+web/node_modules/
+deployments.json
+*.log
