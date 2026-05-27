@@ -14,19 +14,20 @@ const VERDICT_STYLE: any = {
 
 export default function Builder() {
   const { address } = useAccount();
- const [subject, setSubject]   = useState("");
+  const [subject, setSubject] = useState("");
 
-useEffect(() => {
-  if (address) setSubject(address);
-}, [address]);
-  const [domain, setDomain]     = useState("counterparty_trust.ritual_trade_v1");
-  const [step, setStep]         = useState(0);
-  const [loading, setLoading]   = useState(false);
-  const [summary, setSummary]   = useState<any>(null);
-  const [signal, setSignal]     = useState<any>(null);
-  const [verdict, setVerdict]   = useState<any>(null);
-  const [mirror, setMirror]     = useState<any>(null);
-  const [error, setError]       = useState("");
+  useEffect(() => {
+    if (address) setSubject(address);
+  }, [address]);
+
+  const [domain, setDomain]   = useState("counterparty_trust.ritual_trade_v1");
+  const [step, setStep]       = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState<any>(null);
+  const [signal, setSignal]   = useState<any>(null);
+  const [verdict, setVerdict] = useState<any>(null);
+  const [mirror, setMirror]   = useState<any>(null);
+  const [error, setError]     = useState("");
 
   const reset = () => {
     setStep(0); setSummary(null); setSignal(null);
@@ -86,8 +87,6 @@ useEffect(() => {
 
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "3rem 2rem" }}>
-
-      {/* Header */}
       <div style={{ marginBottom: "2.5rem" }}>
         <h1 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
           Signal Builder
@@ -97,7 +96,6 @@ useEffect(() => {
         </p>
       </div>
 
-      {/* Input */}
       <div style={{
         background: "#111", border: "1px solid #1a1a1a",
         borderRadius: "12px", padding: "1.5rem", marginBottom: "1.5rem",
@@ -119,7 +117,6 @@ useEffect(() => {
             }}
           />
         </div>
-
         <div>
           <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "6px" }}>
             DOMAIN
@@ -141,7 +138,6 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Error */}
       {error && (
         <div style={{
           background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.3)",
@@ -150,23 +146,13 @@ useEffect(() => {
         }}>{error}</div>
       )}
 
-      {/* Steps */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-
-        {/* Step 1 */}
-        <StepCard
-          num="1" title="Build Evidence Summary"
-          active={step === 0} done={step > 0}
-          onRun={step1} loading={loading && step === 0}
-        >
+        <StepCard num="1" title="Build Evidence Summary" active={step === 0} done={step > 0} onRun={step1} loading={loading && step === 0}>
           {summary && (
             <div>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
                 {Object.entries(summary.features).map(([k, v]) => (
-                  <div key={k} style={{
-                    background: "#0a0a0a", border: "1px solid #222",
-                    borderRadius: "6px", padding: "4px 10px", fontSize: "12px",
-                  }}>
+                  <div key={k} style={{ background: "#0a0a0a", border: "1px solid #222", borderRadius: "6px", padding: "4px 10px", fontSize: "12px" }}>
                     <span style={{ color: "#555" }}>{k}: </span>
                     <span style={{ color: "#f5f5f5" }}>{String(v)}</span>
                   </div>
@@ -179,88 +165,56 @@ useEffect(() => {
           )}
         </StepCard>
 
-        {/* Step 2 */}
-        <StepCard
-          num="2" title="Build SignalObject"
-          active={step === 1} done={step > 1}
-          onRun={step2} loading={loading && step === 1}
-          disabled={step < 1}
-        >
+        <StepCard num="2" title="Build SignalObject" active={step === 1} done={step > 1} onRun={step2} loading={loading && step === 1} disabled={step < 1}>
           {signal && (
             <div style={{ fontSize: "12px", color: "#666" }}>
               <div>Type: <span style={{ color: "#f5f5f5" }}>{signal.type}</span></div>
               <div>Version: <span style={{ color: "#f5f5f5" }}>{signal.version}</span></div>
               <div>Blocks: <span style={{ color: "#f5f5f5" }}>{signal.blockWindow?.startBlock} → {signal.blockWindow?.endBlock}</span></div>
               <div style={{ marginTop: "0.5rem", padding: "8px", background: "#0a0a0a", borderRadius: "6px", border: "1px solid #222" }}>
-                Preview: <span style={{
-                  color: style?.color || "#666",
-                  fontWeight: "600",
-                }}>{signal.readingArtifact?.verdict}</span>
-                <span style={{ color: "#555", marginLeft: "8px", fontSize: "11px" }}>
-                  {signal.readingArtifact?.reasoning}
-                </span>
+                Preview: <span style={{ color: style?.color || "#666", fontWeight: "600" }}>{signal.readingArtifact?.verdict}</span>
+                <span style={{ color: "#555", marginLeft: "8px", fontSize: "11px" }}>{signal.readingArtifact?.reasoning}</span>
               </div>
             </div>
           )}
         </StepCard>
 
-        {/* Step 3 */}
-        <StepCard
-          num="3" title="Evaluate VerdictObject on Ritual"
-          active={step === 2} done={step > 2}
-          onRun={step3} loading={loading && step === 2}
-          disabled={step < 2}
-        >
+        <StepCard num="3" title="Evaluate VerdictObject on Ritual" active={step === 2} done={step > 2} onRun={step3} loading={loading && step === 2} disabled={step < 2}>
           {verdict && (
             <div>
               <div style={{
-                display: "inline-block",
-                padding: "6px 16px", borderRadius: "6px",
+                display: "inline-block", padding: "6px 16px", borderRadius: "6px",
                 fontSize: "14px", fontWeight: "700",
-                color: style?.color,
-                background: style?.bg,
-                border: `1px solid ${style?.border}`,
-                marginBottom: "0.75rem",
+                color: style?.color, background: style?.bg,
+                border: `1px solid ${style?.border}`, marginBottom: "0.75rem",
               }}>
                 {verdict.verdict?.value} — {verdict.verdict?.action}
               </div>
-              <div style={{ fontSize: "12px", color: "#555" }}>
-                {verdict.verdict?.reasoning}
-              </div>
-                {verdict.transactions && (
-                  <div style={{ marginTop: "0.75rem", fontSize: "11px", color: "#444", fontFamily: "monospace" }}>
-                    {verdict.transactions.submitSignal?.hash && verdict.transactions.submitSignal.hash !== "onchain-via-ritual" && verdict.transactions.submitSignal.hash !== "env-not-set" ? (
-                      <>
-                        <a href={`https://explorer.ritualfoundation.org/tx/${verdict.transactions.submitSignal.hash}`} target="_blank" style={{ color: "#7c3aed", display: "block" }}>
-                          tx1: {verdict.transactions.submitSignal.hash.slice(0, 20)}... ↗
-                        </a>
-                        <a href={`https://explorer.ritualfoundation.org/tx/${verdict.transactions.evaluateVerdict?.hash}`} target="_blank" style={{ color: "#7c3aed", display: "block" }}>
-                          tx2: {verdict.transactions.evaluateVerdict?.hash?.slice(0, 20)}... ↗
-                        </a>
-                      </>
-                    ) : (
-                      <>
-                        <a href="https://explorer.ritualfoundation.org/address/0xc32a1e26e77664753b4A54a4312dF0a8159147D0" target="_blank" style={{ color: "#7c3aed", display: "block" }}>
-                          OmenJudgment → explorer ↗
-                        </a>
-                        <a href="https://explorer.ritualfoundation.org/address/0xCbB34EB8651dc8f1d65a20165C1166C13f626620" target="_blank" style={{ color: "#7c3aed", display: "block" }}>
-                          OmenRegistry → explorer ↗
-                        </a>
-                      </>
-                    )}
-                  </div>
-                )}
+              <div style={{ fontSize: "12px", color: "#555" }}>{verdict.verdict?.reasoning}</div>
+              {verdict.transactions && (
+                <div style={{ marginTop: "0.75rem", fontSize: "11px", color: "#444", fontFamily: "monospace" }}>
+                  {verdict.transactions.submitSignal?.hash && verdict.transactions.submitSignal.hash !== "onchain-via-ritual" && verdict.transactions.submitSignal.hash !== "env-not-set" ? (
+                    <>
+                      <a href={`https://explorer.ritualfoundation.org/tx/${verdict.transactions.submitSignal.hash}`} target="_blank" style={{ color: "#7c3aed", display: "block" }}>
+                        tx1: {String(verdict.transactions.submitSignal.hash).slice(0, 20)}... ↗
+                      </a>
+                      <a href={`https://explorer.ritualfoundation.org/tx/${verdict.transactions.evaluateVerdict?.hash}`} target="_blank" style={{ color: "#7c3aed", display: "block" }}>
+                        tx2: {String(verdict.transactions.evaluateVerdict?.hash).slice(0, 20)}... ↗
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <a href="https://explorer.ritualfoundation.org/address/0xc32a1e26e77664753b4A54a4312dF0a8159147D0" target="_blank" style={{ color: "#7c3aed", display: "block" }}>OmenJudgment → explorer ↗</a>
+                      <a href="https://explorer.ritualfoundation.org/address/0xCbB34EB8651dc8f1d65a20165C1166C13f626620" target="_blank" style={{ color: "#7c3aed", display: "block" }}>OmenRegistry → explorer ↗</a>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </StepCard>
 
-        {/* Step 4 */}
-        <StepCard
-          num="4" title="Read from OmenRegistry"
-          active={step === 3} done={step > 3}
-          onRun={step4} loading={loading && step === 3}
-          disabled={step < 3}
-        >
+        <StepCard num="4" title="Read from OmenRegistry" active={step === 3} done={step > 3} onRun={step4} loading={loading && step === 3} disabled={step < 3}>
           {mirror && (
             <div style={{ fontSize: "12px", color: "#666" }}>
               <div>Verdict: <span style={{ color: style?.color, fontWeight: "600" }}>{mirror.verdict?.value}</span></div>
@@ -274,7 +228,6 @@ useEffect(() => {
             </div>
           )}
         </StepCard>
-
       </div>
     </div>
   );
@@ -305,32 +258,25 @@ function StepCard({ num, title, active, done, onRun, loading, disabled, children
           </span>
         </div>
         {(active || done) && !disabled && (
-          <button
-            onClick={onRun}
-            disabled={loading || done}
-            style={{
-              background: done ? "transparent" : "rgba(245,158,11,0.15)",
-              border: `1px solid ${done ? "#333" : "rgba(245,158,11,0.3)"}`,
-              color: done ? "#555" : "#f59e0b",
-              padding: "6px 14px", borderRadius: "6px",
-              fontSize: "12px", fontWeight: "500",
-              cursor: done ? "default" : "pointer",
-            }}
-          >
+          <button onClick={onRun} disabled={loading || done} style={{
+            background: done ? "transparent" : "rgba(245,158,11,0.15)",
+            border: `1px solid ${done ? "#333" : "rgba(245,158,11,0.3)"}`,
+            color: done ? "#555" : "#f59e0b",
+            padding: "6px 14px", borderRadius: "6px",
+            fontSize: "12px", fontWeight: "500",
+            cursor: done ? "default" : "pointer",
+          }}>
             {loading ? "Running..." : done ? "Done" : "Run →"}
           </button>
         )}
         {!active && !done && !disabled && (
-          <button
-            onClick={onRun}
-            style={{
-              background: "rgba(245,158,11,0.15)",
-              border: "1px solid rgba(245,158,11,0.3)",
-              color: "#f59e0b", padding: "6px 14px",
-              borderRadius: "6px", fontSize: "12px",
-              fontWeight: "500", cursor: "pointer",
-            }}
-          >
+          <button onClick={onRun} style={{
+            background: "rgba(245,158,11,0.15)",
+            border: "1px solid rgba(245,158,11,0.3)",
+            color: "#f59e0b", padding: "6px 14px",
+            borderRadius: "6px", fontSize: "12px",
+            fontWeight: "500", cursor: "pointer",
+          }}>
             {loading ? "Running..." : "Run →"}
           </button>
         )}
