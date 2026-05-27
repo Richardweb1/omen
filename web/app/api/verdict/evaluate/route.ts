@@ -1,3 +1,5 @@
+export const maxDuration = 60;
+
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { ethers } from "ethers";
