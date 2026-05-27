@@ -227,12 +227,17 @@ useEffect(() => {
               <div style={{ fontSize: "12px", color: "#555" }}>
                 {verdict.verdict?.reasoning}
               </div>
-              {verdict.transactions && (
-                <div style={{ marginTop: "0.75rem", fontSize: "11px", color: "#444", fontFamily: "monospace" }}>
-                  <div>tx1: {verdict.transactions.submitSignal?.hash?.slice(0, 20)}...</div>
-                  <div>tx2: {verdict.transactions.evaluateVerdict?.hash?.slice(0, 20)}...</div>
-                </div>
-              )}
+                {verdict.transactions && (
+                  <div style={{ marginTop: "0.75rem", fontSize: "11px", color: "#444", fontFamily: "monospace" }}>
+                    <div style={{ marginBottom: "4px" }}>Contracts verified on Ritual chain:</div>
+                    <a href="https://explorer.ritualfoundation.org/address/0xc32a1e26e77664753b4A54a4312dF0a8159147D0" target="_blank" style={{ color: "#7c3aed", display: "block" }}>
+                      OmenJudgment → explorer ↗
+                    </a>
+                    <a href="https://explorer.ritualfoundation.org/address/0xCbB34EB8651dc8f1d65a20165C1166C13f626620" target="_blank" style={{ color: "#7c3aed", display: "block" }}>
+                      OmenRegistry → explorer ↗
+                    </a>
+                  </div>
+                )}
             </div>
           )}
         </StepCard>
