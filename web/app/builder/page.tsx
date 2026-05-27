@@ -229,13 +229,25 @@ useEffect(() => {
               </div>
                 {verdict.transactions && (
                   <div style={{ marginTop: "0.75rem", fontSize: "11px", color: "#444", fontFamily: "monospace" }}>
-                    <div style={{ marginBottom: "4px" }}>Contracts verified on Ritual chain:</div>
-                    <a href="https://explorer.ritualfoundation.org/address/0xc32a1e26e77664753b4A54a4312dF0a8159147D0" target="_blank" style={{ color: "#7c3aed", display: "block" }}>
-                      OmenJudgment → explorer ↗
-                    </a>
-                    <a href="https://explorer.ritualfoundation.org/address/0xCbB34EB8651dc8f1d65a20165C1166C13f626620" target="_blank" style={{ color: "#7c3aed", display: "block" }}>
-                      OmenRegistry → explorer ↗
-                    </a>
+                    {verdict.transactions.submitSignal?.hash && verdict.transactions.submitSignal.hash !== "onchain-via-ritual" && verdict.transactions.submitSignal.hash !== "env-not-set" ? (
+                      <>
+                        <a href={`https://explorer.ritualfoundation.org/tx/${verdict.transactions.submitSignal.hash}`} target="_blank" style={{ color: "#7c3aed", display: "block" }}>
+                          tx1: {verdict.transactions.submitSignal.hash.slice(0, 20)}... ↗
+                        </a>
+                        <a href={`https://explorer.ritualfoundation.org/tx/${verdict.transactions.evaluateVerdict?.hash}`} target="_blank" style={{ color: "#7c3aed", display: "block" }}>
+                          tx2: {verdict.transactions.evaluateVerdict?.hash?.slice(0, 20)}... ↗
+                        </a>
+                      </>
+                    ) : (
+                      <>
+                        <a href="https://explorer.ritualfoundation.org/address/0xc32a1e26e77664753b4A54a4312dF0a8159147D0" target="_blank" style={{ color: "#7c3aed", display: "block" }}>
+                          OmenJudgment → explorer ↗
+                        </a>
+                        <a href="https://explorer.ritualfoundation.org/address/0xCbB34EB8651dc8f1d65a20165C1166C13f626620" target="_blank" style={{ color: "#7c3aed", display: "block" }}>
+                          OmenRegistry → explorer ↗
+                        </a>
+                      </>
+                    )}
                   </div>
                 )}
             </div>
