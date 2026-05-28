@@ -124,15 +124,16 @@ export default function DemoLab() {
                   <div style={{ fontSize: "11px", color: "#333" }}>{subject.domain}</div>
                 </div>
                 <button
-                  onClick={() => runHandshake(subject)}
+                  onClick={() => { setResults((prev: any) => { const n = {...prev}; delete n[subject.address]; return n; }); runHandshake(subject); }}
                   disabled={isLoading}
                   style={{
-                    background: result ? "rgba(124,58,237,0.15)" : "rgba(245,158,11,0.15)",
-                    border: `1px solid ${result ? "rgba(124,58,237,0.3)" : "rgba(245,158,11,0.3)"}`,
-                    color: result ? "#7c3aed" : "#f59e0b",
-                    padding: "6px 14px", borderRadius: "6px",
-                    fontSize: "12px", fontWeight: "500", cursor: "pointer",
-                  }}
+                   background: "rgba(124,58,237,0.15)",
+                   border: "1px solid rgba(124,58,237,0.3)",
+                   color: "#7c3aed",
+                   padding: "6px 14px", borderRadius: "6px",
+                   fontSize: "12px", fontWeight: "500", cursor: "pointer",
+                   opacity: isLoading ? 0.5 : 1,
+                 }}
                 >
                   {isLoading ? "Running..." : result ? "Re-run" : "Run Handshake →"}
                 </button>
