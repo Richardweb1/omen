@@ -99,7 +99,7 @@ contract OmenJudgmentLLM {
             int256(1000),
             "",
             false,
-            abi.encode("", "", "")
+            abi.encode(string(""), string(""), string(""))
         );
 
         (bool success, bytes memory result) = LLM_PRECOMPILE.call(input);

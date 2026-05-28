@@ -19,8 +19,8 @@ async function main() {
   console.log(`  Balance: ${ethers.formatEther(balance)} RITUAL`);
 
   // Step 1 — deposit fees
-  console.log("\nDepositing 0.1 RITUAL for LLM fees...");
-  const depositTx = await llm.depositFees({ value: ethers.parseEther("0.1") });
+  console.log("\nDepositing 0.35 RITUAL for LLM fees...");
+  const depositTx = await llm.depositFees({ value: ethers.parseEther("0.35") });
   await depositTx.wait();
   console.log("✓ Deposited");
 
