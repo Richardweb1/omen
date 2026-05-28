@@ -258,7 +258,7 @@ The current version uses deterministic evaluation rules. The next version connec
 
 # Whats Next
 
-- **Infernet integration** — on-chain attested model calls replacing deterministic evaluation, with proof of which model ran
+-- **LLM precompile integration (in progress)** — `OmenJudgmentLLM.sol` deployed at `0x2c4cD6b895b2294af4DFBd93E44433c9E28F048C`, actively integrating Ritual's LLM precompile (0x0802) for attested AI verdicts via GLM-4.7-FP8
 - **Public deployment** — Vercel frontend + Render API, accessible to anyone in the Ritual ecosystem
 - **Model integrity domain** — `model_integrity.ritual_attestation_v1` for verifying agent model provenance
 - **Multi-agent coordination** — Omen verdicts as shared primitives for trust-gated agent interactions
