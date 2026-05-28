@@ -64,7 +64,7 @@ export async function POST(req: Request) {
       featureNames: names,
       featureMap: Object.fromEntries(names.map((n, i) => [n, features[i]])),
     },
-    blockWindow: { network: "ritual", chainId: 1979 },
+    blockWindow: { network: "ritual", chainId: 1979, startBlock: 24000000, endBlock: 25000000 },
     buildTime: Math.floor(Date.now() / 1000),
     readingArtifact: {
       verdict: VERDICT_NAMES[verdictId],

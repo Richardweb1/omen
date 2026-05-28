@@ -5,7 +5,7 @@ const API = '/api';
 
 const DEMO = [
   { address: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", label: "Clean Trade Subject" },
-  { address: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c", label: "Risky Trade Subject" },
+  { address: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c", label: "Active Trade Subject" },
   { address: "0x0000000000000000000000000000000000000b0b", label: "Agent Safety Subject" },
 ];
 
