@@ -131,14 +131,16 @@ The frontend never holds a private key. The Python API builds evidence and coord
 
 ---
 
-# Contracts on Ritual Testnet
 
-| Contract          | Address                                        | Role                                      |
-|-------------------|------------------------------------------------|-------------------------------------------|
-| `OmenJudgment`    | `0xc32a1e26e77664753b4A54a4312dF0a8159147D0`   | Evidence intake, verdict issuance, history |
-| `OmenRegistry`    | `0xCbB34EB8651dc8f1d65a20165C1166C13f626620`   | Compact mirror for hot-path consumption   |
-| `OmenAgentAware`  | `0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295`   | Verdict-aware benchmark agent             |
-| `OmenAgentDirect` | `0x7040235955B2D397d7CB717a300911Ec68644aFe`   | Direct-action comparison agent            |
+
+## Contracts on Ritual Testnet
+
+| Contract | Address | Role | Status |
+|---|---|---|---|
+| `OmenJudgment` | `0xc32a1e26e77664753b4A54a4312dF0a8159147D0` | Evidence intake, verdict issuance, history  ✓ Verified 
+| `OmenRegistry` | `0xCbB34EB8651dc8f1d65a20165C1166C13f626620` | Compact mirror for hot path consumption  ✓ Verified 
+| `OmenAgentAware` | `0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295` | Verdict aware benchmark agent  ✓ Verified 
+| `OmenAgentDirect` | `0x7040235955B2D397d7CB717a300911Ec68644aFe` | Direct action comparison agent ✓ Verified
 
 Explorer: [explorer.ritualfoundation.org](https://explorer.ritualfoundation.org)
 
