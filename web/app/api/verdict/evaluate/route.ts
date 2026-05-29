@@ -48,8 +48,8 @@ function evaluate(domain: string, features: number[]): [number, string] {
   return [1, "Agent operating within safe parameters"];
 }
 
-const trust signal_NAMES = ["UNSEEN","SEALED","PENDING","REVOKED","LAPSED"];
-const trust signal_ACTIONS: Record<number,string> = {0:"COLLECT",1:"ALLOW",2:"REVIEW",3:"DENY",4:"REFRESH"};
+const VERDICT_NAMES = ["UNSEEN","SEALED","PENDING","REVOKED","LAPSED"];
+const VERDICT_ACTIONS: Record<number,string> = {0:"COLLECT",1:"ALLOW",2:"REVIEW",3:"DENY",4:"REFRESH"};
 
 const JUDGMENT_ABI = [
   "function submitSignal(address subject, string calldata domain, bytes32 merkleRoot, uint256 startBlock, uint256 endBlock) external",
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
   if (!subject) return NextResponse.json({ error: "subject required" }, { status: 400 });
 
   const { features, merkleRoot } = buildSignal(subject, domain);
-  const [trust signalId, reasoning] = evaluate(domain, features);
+  const [verdictId, reasoning] = evaluate(domain, features);
 
   const privateKey = process.env.PRIVATE_KEY;
   const rpcUrl = process.env.RITUAL_RPC_URL || "https://rpc.ritualfoundation.org";
@@ -71,10 +71,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       status: "evaluated",
       subject, domain,
-      trust signal: { value: trust signal_NAMES[trust signalId], trust signalId, action: trust signal_ACTIONS[trust signalId], reasoning },
+      verdict: { value: VERDICT_NAMES[verdictId], verdictId, action: VERDICT_ACTIONS[verdictId], reasoning },
       transactions: {
         submitSignal:    { hash: "env-not-set", block: 0 },
-        evaluatetrust signal: { hash: "env-not-set", block: 0 },
+        evaluateVerdict: { hash: "env-not-set", block: 0 },
       },
     });
   }
@@ -102,10 +102,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       status: "evaluated",
       subject, domain,
-      trust signal: { value: trust signal_NAMES[trust signalId], trust signalId, action: trust signal_ACTIONS[trust signalId], reasoning },
+      verdict: { value: VERDICT_NAMES[verdictId], verdictId, action: VERDICT_ACTIONS[verdictId], reasoning },
       transactions: {
         submitSignal:    { hash: r1?.hash, block: r1?.blockNumber },
-        evaluatetrust signal: { hash: r2?.hash, block: r2?.blockNumber },
+        evaluateVerdict: { hash: r2?.hash, block: r2?.blockNumber },
       },
     });
 
@@ -113,10 +113,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       status: "evaluated",
       subject, domain,
-      trust signal: { value: trust signal_NAMES[trust signalId], trust signalId, action: trust signal_ACTIONS[trust signalId], reasoning },
+      verdict: { value: VERDICT_NAMES[verdictId], verdictId, action: VERDICT_ACTIONS[verdictId], reasoning },
       transactions: {
         submitSignal:    { hash: "tx-failed", block: 0 },
-        evaluatetrust signal: { hash: "tx-failed: " + e.message?.slice(0, 50), block: 0 },
+        evaluateVerdict: { hash: "tx-failed: " + e.message?.slice(0, 50), block: 0 },
       },
     });
   }

@@ -179,7 +179,7 @@ export default function Builder() {
           )}
         </StepCard>
 
-        <StepCard num="3" title="Evaluate Trust Signal on Ritual" active={step === 2} done={step > 2} onRun={step3} loading={loading && step === 2} disabled={step < 2}>
+        <StepCard num="3" title="Evaluate VerdictObject on Ritual" active={step === 2} done={step > 2} onRun={step3} loading={loading && step === 2} disabled={step < 2}>
           {verdict && (
             <div>
               <div style={{

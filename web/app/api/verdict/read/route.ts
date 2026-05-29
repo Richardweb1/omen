@@ -40,29 +40,29 @@ function evaluate(domain: string, features: number[]): [number, string] {
   return [1, "Agent operating within safe parameters"];
 }
 
-const trust signal_NAMES = ["UNSEEN","SEALED","PENDING","REVOKED","LAPSED"];
-const trust signal_ACTIONS: Record<number,string> = {0:"COLLECT",1:"ALLOW",2:"REVIEW",3:"DENY",4:"REFRESH"};
+const VERDICT_NAMES = ["UNSEEN","SEALED","PENDING","REVOKED","LAPSED"];
+const VERDICT_ACTIONS: Record<number,string> = {0:"COLLECT",1:"ALLOW",2:"REVIEW",3:"DENY",4:"REFRESH"};
 
 export async function POST(req: Request) {
   const { subject, domain = "counterparty_trust.ritual_trade_v1", action = "trade" } = await req.json();
   if (!subject) return NextResponse.json({ error: "subject required" }, { status: 400 });
 
   const features = buildSignal(subject, domain);
-  const [trust signalId, reasoning] = evaluate(domain, features);
+  const [verdictId, reasoning] = evaluate(domain, features);
 
   return NextResponse.json({
     subject, domain,
-    trust signal: {
-      value:     trust signal_NAMES[trust signalId],
-      trust signalId,
-      action:    trust signal_ACTIONS[trust signalId],
+    verdict: {
+      value:     VERDICT_NAMES[verdictId],
+      verdictId,
+      action:    VERDICT_ACTIONS[verdictId],
       timestamp: Math.floor(Date.now() / 1000),
-      isSealed:  trust signalId === 1,
-      isRevoked: trust signalId === 3,
+      isSealed:  verdictId === 1,
+      isRevoked: verdictId === 3,
       isFresh:   true,
     },
     handshake: {
-      allowed: trust signalId === 1,
+      allowed: verdictId === 1,
       reason:  reasoning,
       action,
     },

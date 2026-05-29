@@ -11,11 +11,11 @@ const VSTYLE: any = {
 };
 
 const CONSUMPTION = [
-  { Trust Signal: "SEALED",  action: "Allow when fresh",           color: "#16a34a" },
-  { Trust Signal: "REVOKED", action: "Deny the interaction",        color: "#dc2626" },
-  { Trust Signal: "PENDING", action: "Review or tighten policy",    color: "#f59e0b" },
-  { Trust Signal: "UNSEEN",  action: "Collect signal first",        color: "#666666" },
-  { Trust Signal: "LAPSED",  action: "Refresh before acting",       color: "#7c3aed" },
+  { verdict: "SEALED",  action: "Allow when fresh",           color: "#16a34a" },
+  { verdict: "REVOKED", action: "Deny the interaction",        color: "#dc2626" },
+  { verdict: "PENDING", action: "Review or tighten policy",    color: "#f59e0b" },
+  { verdict: "UNSEEN",  action: "Collect signal first",        color: "#666666" },
+  { verdict: "LAPSED",  action: "Refresh before acting",       color: "#7c3aed" },
 ];
 
 export default function Domains() {
@@ -54,7 +54,7 @@ export default function Domains() {
           An <span style={{ color: "#f59e0b" }}>OmenSpec</span> defines the semantic boundary for judgment. Each domain answers a specific trust question with its own evidence policy, evaluation rules, and consumption model.
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.5rem" }}>
-          {["OmenSpec", "SignalObject", "ReadingArtifact", "Trust SignalObject"].map(obj => (
+          {["OmenSpec", "SignalObject", "ReadingArtifact", "VerdictObject"].map(obj => (
             <div key={obj} style={{
               background: "#0a0a0a", border: "1px solid #222",
               borderRadius: "8px", padding: "0.75rem", textAlign: "center",
@@ -144,8 +144,8 @@ export default function Domains() {
           HOT-PATH CONSUMPTION RULES
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          {CONSUMPTION.map(({ Trust Signal, action, color }) => (
-            <div key={Trust Signal} style={{
+          {CONSUMPTION.map(({ verdict, action, color }) => (
+            <div key={verdict} style={{
               display: "flex", alignItems: "center", gap: "1rem",
               padding: "0.75rem", background: "#0a0a0a",
               borderRadius: "8px", border: "1px solid #1a1a1a",
@@ -154,7 +154,7 @@ export default function Domains() {
                 fontSize: "11px", fontWeight: "700", padding: "2px 10px",
                 borderRadius: "4px", color, minWidth: "80px", textAlign: "center",
                 background: `${color}18`, border: `1px solid ${color}44`,
-              }}>{Trust Signal}</span>
+              }}>{verdict}</span>
               <span style={{ fontSize: "13px", color: "#666" }}>{action}</span>
             </div>
           ))}

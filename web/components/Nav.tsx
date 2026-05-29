@@ -7,7 +7,7 @@ import ConnectWallet from "./ConnectWallet";
 const links = [
   { href: "/",        label: "Home"     },
   { href: "/builder", label: "Builder"  },
-  { href: "/verdict", label: "Trust Signal"  },
+  { href: "/verdict", label: "Verdict"  },
   { href: "/demo",    label: "Demo Lab" },
   { href: "/domains", label: "Domains"  },
   { href: "/proofs",  label: "Proofs"   },

@@ -17,7 +17,7 @@ const VSTYLE: any = {
   LAPSED:  { color: "#7c3aed", bg: "rgba(124,58,237,0.1)",  border: "rgba(124,58,237,0.3)"  },
 };
 
-export default function trust signal() {
+export default function Verdict() {
   const [subject, setSubject] = useState("");
   const [domain, setDomain]   = useState("counterparty_trust.ritual_trade_v1");
   const [result, setResult]   = useState<any>(null);
@@ -29,7 +29,7 @@ export default function trust signal() {
     if (!s) return setError("Enter a wallet address");
     setLoading(true); setError(""); setResult(null);
     try {
-      const r = await fetch(`${API}/trust signal/read`, {
+      const r = await fetch(`${API}/verdict/read`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject: s, domain, action: "trade" }),
@@ -42,17 +42,17 @@ export default function trust signal() {
     setLoading(false);
   };
 
-  const vs = result?.trust signal?.value;
+  const vs = result?.verdict?.value;
   const style = vs ? VSTYLE[vs] || VSTYLE.UNSEEN : null;
 
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "3rem 2rem" }}>
       <div style={{ marginBottom: "2.5rem" }}>
         <h1 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
-          Trust Signal Explorer
+          Verdict Explorer
         </h1>
         <p style={{ color: "#666", fontSize: "14px" }}>
-          Read the latest trust signal for any wallet from OmenRegistry
+          Read the latest verdict for any wallet from OmenRegistry
         </p>
       </div>
 
@@ -129,14 +129,14 @@ export default function trust signal() {
               color: style?.color, background: style?.bg,
               border: `1px solid ${style?.border}`,
             }}>
-              {result.trust signal?.value}
+              {result.verdict?.value}
             </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
             {[
-              { label: "Action",   value: result.trust signal?.action },
-              { label: "Fresh",    value: result.trust signal?.isFresh ? "Yes" : "No" },
+              { label: "Action",   value: result.verdict?.action },
+              { label: "Fresh",    value: result.verdict?.isFresh ? "Yes" : "No" },
               { label: "Handshake", value: result.handshake?.allowed ? "ALLOWED" : "DENIED" },
             ].map(({ label, value }) => (
               <div key={label} style={{
