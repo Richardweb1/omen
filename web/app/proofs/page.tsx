@@ -174,9 +174,9 @@ export default function Proofs() {
             <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
               <span style={{
                 fontSize: "13px", fontWeight: "700",
-                color: proof.readingArtifact?.verdict === "SEALED" ? "#16a34a" :
-                       proof.readingArtifact?.verdict === "REVOKED" ? "#dc2626" : "#f59e0b",
-              }}>{proof.readingArtifact?.verdict}</span>
+                color: proof.readingArtifact?.Trust Signal === "SEALED" ? "#16a34a" :
+                       proof.readingArtifact?.Trust Signal === "REVOKED" ? "#dc2626" : "#f59e0b",
+              }}>{proof.readingArtifact?.Trust Signal}</span>
               <span style={{ fontSize: "12px", color: "#555" }}>{proof.readingArtifact?.reasoning}</span>
             </div>
           </div>

@@ -35,13 +35,12 @@ export default function Home() {
           fontWeight: "700", lineHeight: "1.1",
           color: "#f5f5f5", marginBottom: "1.5rem",
         }}>
-          Signs read from{" "}
+          Know who to trust{" "}
           <span style={{
             background: "linear-gradient(135deg, #f59e0b, #7c3aed)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
-          }}>evidence</span>
-          <br />Verdicts that persist
+          }}>before you interact.</span>
         </h1>
 
         <p style={{
@@ -49,7 +48,7 @@ export default function Home() {
           maxWidth: "600px", margin: "0 auto 2.5rem",
           lineHeight: "1.7",
         }}>
-          Omen turns onchain behavior into attested AI judgment. One protocol for counterparty trust, agent safety, and domain-specific verdicts — native to Ritual.
+          Paste any wallet address. Omen checks its onchain history and tells you if it's safe to interact with — powered by AI running inside Ritual chain.
         </p>
 
         <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
@@ -108,8 +107,8 @@ export default function Home() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem" }}>
           {[
             { step: "01", title: "Build Signal", desc: "Reproducible evidence artifacts from onchain activity. Merkle root + feature extraction." },
-            { step: "02", title: "Form Verdict", desc: "Ritual's AI layer evaluates evidence and returns an attested verdict — proof of which model ran." },
-            { step: "03", title: "Consume Trust", desc: "OmenRegistry exposes compact verdict state. Agents and contracts react in one cheap call." },
+            { step: "02", title: "Form Trust Signal", desc: "Ritual's AI layer evaluates evidence and returns an attested Trust Signal — proof of which model ran." },
+            { step: "03", title: "Consume Trust", desc: "OmenRegistry exposes compact Trust Signal state. Agents and contracts react in one cheap call." },
           ].map(({ step, title, desc }) => (
             <div key={step} style={{
               background: "#111", border: "1px solid #1a1a1a",

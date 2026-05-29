@@ -26,7 +26,7 @@ export default function DemoLab() {
   setLoading(subject.address);
   const start = Date.now();
   try {
-    const r = await fetch(`${API}/verdict/read`, {
+    const r = await fetch(`${API}/Trust Signal/read`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ subject: subject.address, domain: subject.domain, action: subject.action }),
@@ -35,7 +35,7 @@ export default function DemoLab() {
     const latency = Date.now() - start;
     setResults((prev: any) => ({ ...prev, [subject.address]: { ...d, latency } }));
   } catch (e) {
-    setResults((prev: any) => ({ ...prev, [subject.address]: { verdict: { value: subject.expected, action: subject.expected === "SEALED" ? "ALLOW" : "DENY" }, handshake: { allowed: subject.expected === "SEALED", reason: "cached result" }, latency: Date.now() - start } }));
+    setResults((prev: any) => ({ ...prev, [subject.address]: { Trust Signal: { value: subject.expected, action: subject.expected === "SEALED" ? "ALLOW" : "DENY" }, handshake: { allowed: subject.expected === "SEALED", reason: "cached result" }, latency: Date.now() - start } }));
   }
   setLoading(null);
 };
@@ -98,7 +98,7 @@ export default function DemoLab() {
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         {SUBJECTS.map((subject) => {
           const result = results[subject.address];
-          const vs     = result?.verdict?.value;
+          const vs     = result?.Trust Signal?.value;
           const style  = vs ? VSTYLE[vs] || VSTYLE.UNSEEN : VSTYLE[subject.expected];
           const isLoading = loading === subject.address;
 
@@ -142,8 +142,8 @@ export default function DemoLab() {
               {result && !result.error && (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.5rem" }}>
                   {[
-                    { label: "Verdict",   value: result.verdict?.value,                           color: style?.color },
-                    { label: "Action",    value: result.verdict?.action,                          color: "#f5f5f5" },
+                    { label: "Trust Signal",   value: result.Trust Signal?.value,                           color: style?.color },
+                    { label: "Action",    value: result.Trust Signal?.action,                          color: "#f5f5f5" },
                     { label: "Handshake", value: result.handshake?.allowed ? "ALLOWED" : "DENIED", color: result.handshake?.allowed ? "#16a34a" : "#dc2626" },
                     { label: "Latency",   value: `${result.latency}ms`,                           color: "#7c3aed" },
                   ].map(({ label, value, color }) => (
