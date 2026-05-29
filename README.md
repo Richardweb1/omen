@@ -137,10 +137,12 @@ The frontend never holds a private key. The Python API builds evidence and coord
 
 | Contract | Address | Role | Status |
 |---|---|---|---|
-| `OmenJudgment` | `0xc32a1e26e77664753b4A54a4312dF0a8159147D0` | Evidence intake, verdict issuance, history  ✓ Verified 
-| `OmenRegistry` | `0xCbB34EB8651dc8f1d65a20165C1166C13f626620` | Compact mirror for hot path consumption  ✓ Verified 
-| `OmenAgentAware` | `0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295` | Verdict aware benchmark agent  ✓ Verified 
-| `OmenAgentDirect` | `0x7040235955B2D397d7CB717a300911Ec68644aFe` | Direct action comparison agent ✓ Verified
+| `OmenJudgment` | `0xc32a1e26e77664753b4A54a4312dF0a8159147D0` | Evidence intake, signal issuance, history  ✓ Verified 
+| `OmenRegistry` | `0xCbB34EB8651dc8f1d65a20165C1166C13f626620` | Compact mirror for hot-path consumption  ✓ Verified 
+| `OmenAgentAware` | `0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295` | Verdict-aware benchmark agent  ✓ Verified 
+| `OmenAgentDirect` | `0x7040235955B2D397d7CB717a300911Ec68644aFe` | Direct-action comparison agent  ✓ Verified 
+| `OmenJudgmentLLM` | `0x4d6f86B615e4B793B43BCd9868D0E3cBD7b64947` | LLM precompile (0x0802) — attested AI signals via GLM-4.7-FP8 in TEE  ✓ Verified 
+| `OmenSovereignAgent` | `0x3260dDe013d8c5130092B3DFB7d44DdD995da528` | Autonomous agent — auto-refreshes signals every 500 blocks via Scheduler  ✓ Verified 
 
 Explorer: [explorer.ritualfoundation.org](https://explorer.ritualfoundation.org)
 
