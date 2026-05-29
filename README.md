@@ -265,6 +265,14 @@ The current version uses deterministic evaluation rules. The next version connec
 - **Model integrity domain** — `model_integrity.ritual_attestation_v1` for verifying agent model provenance
 - **Multi-agent coordination** — Omen verdicts as shared primitives for trust-gated agent interactions
 
+- ## Phases
+
+- **Phase 1** — Deterministic trust signals, 4 contracts, full frontend ✓
+- **Phase 2** — LLM precompile (0x0802), GLM-4.7-FP8 in TEE, attested signals ✓
+- **Phase 3** — Scheduler precompile, OmenSovereignAgent, auto-refresh every 500 blocks ✓
+- **Phase 4** — Sovereign Agent (0x080C) deep wallet audit on demand (coming)
+- **Phase 5** — Persistent Agent (0x0820) always-on guardian coming soon
+
 ---
 
 *Built on Ritual chain · Chain ID 1979 · Block time ~350ms · RPC: rpc.ritualfoundation.org*
