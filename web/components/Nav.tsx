@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAccount } from "wagmi";
-import ConnectWallet from "./ConnectWallet";
+import ConnectWallet from "@/components/ConnectWallet";
 
 const links = [
   { href: "/",        label: "Home"     },

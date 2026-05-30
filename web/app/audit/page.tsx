@@ -42,7 +42,7 @@ export default function Audit() {
           Deep Wallet Audit
         </h1>
         <p style={{ color: "#666", fontSize: "14px" }}>
-          AI-powered security analysis using GLM-4.7-FP8 running inside a Ritual TEE. Get a detailed report on any wallet.
+          AI-powered security analysis using GLM-4.7-FP8 running inside a Ritual TEE.
         </p>
       </div>
 
@@ -81,34 +81,23 @@ export default function Audit() {
               fontSize: "13px", outline: "none", boxSizing: "border-box",
             }}
           >
-            <option value="counterparty_trust.ritual_trade_v1">Counterparty Trust — trading</option>
-            <option value="agent_safety.ritual_infernet_v1">Agent Safety — autonomous execution</option>
+            <option value="counterparty_trust.ritual_trade_v1">Counterparty Trust</option>
+            <option value="agent_safety.ritual_infernet_v1">Agent Safety</option>
           </select>
-        </div>
-
-        <div style={{
-          background: "rgba(124,58,237,0.05)", border: "1px solid rgba(124,58,237,0.2)",
-          borderRadius: "8px", padding: "12px 16px", marginBottom: "1.5rem",
-        }}>
-          <div style={{ fontSize: "12px", color: "#7c3aed", marginBottom: "4px", fontWeight: "600" }}>
-            How it works
-          </div>
-          <div style={{ fontSize: "12px", color: "#555" }}>
-            GLM-4.7-FP8 runs inside a Ritual TEE and analyzes the wallet behavior. The report includes risk factors, recommendations, and a trust signal with TEE attestation proof.
-          </div>
         </div>
 
         <button
           onClick={requestAudit}
           disabled={loading}
           style={{
-            width: "100%", background: loading ? "#1a1a1a" : "linear-gradient(135deg, #7c3aed, #4c1d95)",
+            width: "100%",
+            background: loading ? "#1a1a1a" : "linear-gradient(135deg, #7c3aed, #4c1d95)",
             border: "none", borderRadius: "8px", padding: "12px",
             color: loading ? "#555" : "#f5f5f5", fontSize: "14px",
             fontWeight: "600", cursor: loading ? "not-allowed" : "pointer",
           }}
         >
-          {loading ? "Running AI Audit in Ritual TEE..." : "Request Deep Audit →"}
+          {loading ? "Running AI Audit in Ritual TEE..." : "Request Deep Audit"}
         </button>
       </div>
 
@@ -131,7 +120,7 @@ export default function Audit() {
               background: "#7c3aed", boxShadow: "0 0 8px #7c3aed",
             }}/>
             <span style={{ fontSize: "13px", color: "#7c3aed", fontWeight: "600" }}>
-              AI AUDIT REPORT — TEE ATTESTED
+              AI AUDIT REPORT
             </span>
           </div>
 
@@ -147,7 +136,7 @@ export default function Audit() {
               fontSize: "13px", fontWeight: "700",
               background: report.signal === "SEALED" ? "rgba(22,163,74,0.1)" : report.signal === "REVOKED" ? "rgba(220,38,38,0.1)" : "rgba(245,158,11,0.1)",
               color: report.signal === "SEALED" ? "#16a34a" : report.signal === "REVOKED" ? "#dc2626" : "#f59e0b",
-              border: `1px solid ${report.signal === "SEALED" ? "rgba(22,163,74,0.3)" : report.signal === "REVOKED" ? "rgba(220,38,38,0.3)" : "rgba(245,158,11,0.3)"}`,
+              border: "1px solid " + (report.signal === "SEALED" ? "rgba(22,163,74,0.3)" : report.signal === "REVOKED" ? "rgba(220,38,38,0.3)" : "rgba(245,158,11,0.3)"),
             }}>
               {report.signal}
             </div>
@@ -166,13 +155,13 @@ export default function Audit() {
           </div>
 
           {report.txHash && (
-            
-              href={`https://explorer.ritualfoundation.org/tx/${report.txHash}`}
-              target="_blank"
-              style={{ fontSize: "12px", color: "#7c3aed" }}
-            >
-              View TEE attestation on Ritual explorer ↗
-            </a>
+  
+             <a href={"https://explorer.ritualfoundation.org/tx/" + String(report.txHash)}
+                target="_blank"
+                 style={{ fontSize: "12px", color: "#7c3aed" }}
+         >
+                 View TEE attestation on Ritual explorer
+              </a>
           )}
         </div>
       )}
