@@ -49,10 +49,10 @@ export default function Verdict() {
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "3rem 2rem" }}>
       <div style={{ marginBottom: "2.5rem" }}>
         <h1 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
-          Verdict Explorer
+          Trust Signal Explorer
         </h1>
         <p style={{ color: "#666", fontSize: "14px" }}>
-          Read the latest verdict for any wallet from OmenRegistry
+          Read the latest trust signal for any wallet from OmenRegistry
         </p>
       </div>
 
