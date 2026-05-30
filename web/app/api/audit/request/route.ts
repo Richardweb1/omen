@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { ethers } from "ethers";
 
-function buildSignal(subject: string, domain: string) {
+function buildFeatures(subject: string, domain: string) {
   const addrHash = BigInt("0x" + createHash("sha256").update(subject).digest("hex"));
   if (domain === "counterparty_trust.ritual_trade_v1") {
     return [
@@ -24,70 +24,66 @@ function buildSignal(subject: string, domain: string) {
   ];
 }
 
-const AUDIT_GATEWAY_ABI = [
-  "function depositFees() external payable",
-  "function requestAudit(address subject, string calldata domain, uint256[] calldata features) external payable returns (uint256 auditId)",
-  "function getAudit(uint256 auditId) external view returns (address requester, address subject, string memory domain, uint256 requestedAt, bool completed, string memory report)",
+const LLM_ABI = [
+  "function evaluateWithLLM(address subject, string calldata domain, uint256[] calldata features, string calldata reasoning) external",
+  "function getVerdict(address subject, string calldata domain) external view returns (uint8 verdict, uint256 evaluatedAt, uint256 revision, string memory reasoning, string memory attestation, bool llmEvaluated)",
 ];
+
+const VERDICT_NAMES = ["UNSEEN", "SEALED", "PENDING", "REVOKED", "LAPSED"];
 
 export async function POST(req: Request) {
   const { subject, domain = "counterparty_trust.ritual_trade_v1" } = await req.json();
   if (!subject) return NextResponse.json({ error: "subject required" }, { status: 400 });
 
-  const features = buildSignal(subject, domain);
-
+  const features = buildFeatures(subject, domain);
   const privateKey = process.env.PRIVATE_KEY;
-  const rpcUrl     = process.env.RITUAL_RPC_URL || "https://rpc.ritualfoundation.org";
-  const auditAddr  = process.env.OMEN_AUDIT_ADDRESS;
+  const rpcUrl = process.env.RITUAL_RPC_URL || "https://rpc.ritualfoundation.org";
+  const llmAddress = "0x4d6f86B615e4B793B43BCd9868D0E3cBD7b64947";
 
-  if (!privateKey || !auditAddr) {
-    return NextResponse.json({ error: "Server not configured" }, { status: 500 });
-  }
+  if (!privateKey) return NextResponse.json({ error: "Server not configured" }, { status: 500 });
 
   try {
     const provider = new ethers.JsonRpcProvider(rpcUrl);
-    const wallet   = new ethers.Wallet(privateKey, provider);
-    const contract = new ethers.Contract(auditAddr, AUDIT_GATEWAY_ABI, wallet);
+    const wallet = new ethers.Wallet(privateKey, provider);
+    const contract = new ethers.Contract(llmAddress, LLM_ABI, wallet);
 
-    // Deposit fees first if needed
+    // Deposit to RitualWallet for EOA if needed
     const RITUAL_WALLET = "0x532F0dF0896F353d8C3DD8cc134e8129DA2a3948";
-    const ritualWallet  = new ethers.Contract(RITUAL_WALLET, [
-      "function balanceOf(address user) external view returns (uint256)",
-      "function deposit(uint256 lockDuration) external payable",
+    const rw = new ethers.Contract(RITUAL_WALLET, [
+      "function balanceOf(address) view returns (uint256)",
+      "function deposit(uint256) external payable",
     ], wallet);
 
-    const balance = await ritualWallet.balanceOf(wallet.address);
-    if (balance < ethers.parseEther("0.05")) {
-      const depositTx = await ritualWallet.deposit(10000, { value: ethers.parseEther("0.1") });
-      await depositTx.wait();
+    const rwBalance = await rw.balanceOf(wallet.address);
+    if (rwBalance < ethers.parseEther("0.05")) {
+      const walletBalance = await provider.getBalance(wallet.address);
+      if (walletBalance > ethers.parseEther("0.05")) {
+        const depositTx = await rw.deposit(5000, { value: ethers.parseEther("0.05") });
+        await depositTx.wait();
+      }
     }
 
-    // Request audit
-    const tx = await contract.requestAudit(subject, domain, features, {
-      value: ethers.parseEther("0.01"),
-      gasLimit: 5000000,
-    });
+    // Call evaluateWithLLM
+    const tx = await contract.evaluateWithLLM(
+      subject, domain, features, "deep audit request",
+      { gasLimit: 5000000 }
+    );
     const receipt = await tx.wait();
 
-    // Get audit result
-    const auditId = 0; // first audit
-    const audit   = await contract.getAudit(auditId);
-
-    // Parse signal from report
-    const report  = audit[5] || "Audit completed - report pending";
-    let signal    = "PENDING";
-    if (report.toUpperCase().includes("SEALED")) signal = "SEALED";
-    if (report.toUpperCase().includes("REVOKED")) signal = "REVOKED";
+    // Read result
+    const result = await contract.getVerdict(subject, domain);
+    const signal = VERDICT_NAMES[result[0]] || "PENDING";
+    const reasoning = result[3] || "Evaluation completed";
+    const attestation = result[4] || "";
 
     return NextResponse.json({
-      subject, domain,
-      signal,
-      report,
-      txHash:  receipt?.hash,
-      auditId: auditId,
+      subject, domain, signal,
+      report: reasoning,
+      attestation,
+      txHash: receipt?.hash,
     });
 
   } catch (e: any) {
-    return NextResponse.json({ error: e.message?.slice(0, 100) }, { status: 500 });
+    return NextResponse.json({ error: e.message?.slice(0, 200) }, { status: 500 });
   }
 }

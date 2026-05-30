@@ -19,7 +19,7 @@ async function main() {
 
   // Deposit for the contract
   console.log("Depositing 0.05 RITUAL for OmenAuditGateway contract...");
-  const tx = await ritualWallet.depositFor(AUDIT_CONTRACT, 10000, { value: ethers.parseEther("0.05") });
+  const tx = await ritualWallet.depositFor(AUDIT_CONTRACT, 10000, { value: ethers.parseEther("0.25") });
   await tx.wait();
 
   const newBalance = await ritualWallet.balanceOf(AUDIT_CONTRACT);
