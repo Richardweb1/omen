@@ -35,13 +35,12 @@ export default function Home() {
           fontWeight: "700", lineHeight: "1.1",
           color: "#f5f5f5", marginBottom: "1.5rem",
         }}>
-          Signs read from{" "}
+          Know who to trust{" "}
           <span style={{
             background: "linear-gradient(135deg, #f59e0b, #7c3aed)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
-          }}>evidence</span>
-          <br />Verdicts that persist
+             before you interact.</span>
         </h1>
 
         <p style={{
@@ -49,7 +48,7 @@ export default function Home() {
           maxWidth: "600px", margin: "0 auto 2.5rem",
           lineHeight: "1.7",
         }}>
-          Omen turns onchain behavior into attested AI judgment. One protocol for counterparty trust, agent safety, and domain-specific verdicts — native to Ritual.
+          Paste any wallet address. Omen checks its onchain history and tells you if it is safe to interact with — powered by AI running inside Ritual chain.
         </p>
 
         <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
