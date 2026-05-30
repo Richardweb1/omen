@@ -49,7 +49,7 @@ function evaluate(domain: string, features: number[]): [number, string] {
 }
 
 const VERDICT_NAMES = ["UNSEEN","SEALED","PENDING","REVOKED","LAPSED"];
-const VERDICT_ACTIONS: Record<number,string> = {0:"COLLECT",1:"ALLOW",2:"REVIEW",3:"DENY",4:"REFRESH"};
+const VERDICT_ACTIONS: Record<number,string> = {0:"No data yet",1:"Safe to interact",2:"Review first",3:"Block it",4:"Refresh needed"};
 
 const JUDGMENT_ABI = [
   "function submitSignal(address subject, string calldata domain, bytes32 merkleRoot, uint256 startBlock, uint256 endBlock) external",
