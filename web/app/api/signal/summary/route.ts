@@ -45,7 +45,7 @@ function evaluate(domain: string, features: number[]): [number, string] {
   return [1, "Agent operating within safe parameters"];
 }
 
-const VERDICT_NAMES = ["UNSEEN","SEALED","PENDING","REVOKED","LAPSED"];
+const VERDICT_NAMES = ["UNSEEN","TRUSTED","PENDING","REVOKED","LAPSED"];
 const VERDICT_ACTIONS: Record<number,string> = {0:"No data yet",1:"Safe to interact",2:"Review first",3:"Block it",4:"Refresh needed"};
 
 export async function POST(req: Request) {

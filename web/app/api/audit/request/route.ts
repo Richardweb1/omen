@@ -29,7 +29,7 @@ const LLM_ABI = [
   "function getVerdict(address subject, string calldata domain) external view returns (uint8 verdict, uint256 evaluatedAt, uint256 revision, string memory reasoning, string memory attestation, bool llmEvaluated)",
 ];
 
-const VERDICT_NAMES = ["UNSEEN", "SEALED", "PENDING", "REVOKED", "LAPSED"];
+const VERDICT_NAMES = ["UNSEEN", "TRUSTED", "PENDING", "REVOKED", "LAPSED"];
 
 export async function POST(req: Request) {
   const { subject, domain = "counterparty_trust.ritual_trade_v1" } = await req.json();

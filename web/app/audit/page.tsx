@@ -134,9 +134,9 @@ export default function Audit() {
             <div style={{
               display: "inline-block", padding: "4px 12px", borderRadius: "6px",
               fontSize: "13px", fontWeight: "700",
-              background: report.signal === "SEALED" ? "rgba(22,163,74,0.1)" : report.signal === "REVOKED" ? "rgba(220,38,38,0.1)" : "rgba(245,158,11,0.1)",
-              color: report.signal === "SEALED" ? "#16a34a" : report.signal === "REVOKED" ? "#dc2626" : "#f59e0b",
-              border: "1px solid " + (report.signal === "SEALED" ? "rgba(22,163,74,0.3)" : report.signal === "REVOKED" ? "rgba(220,38,38,0.3)" : "rgba(245,158,11,0.3)"),
+              background: report.signal === "TRUSTED" ? "rgba(22,163,74,0.1)" : report.signal === "REVOKED" ? "rgba(220,38,38,0.1)" : "rgba(245,158,11,0.1)",
+              color: report.signal === "TRUSTED" ? "#16a34a" : report.signal === "REVOKED" ? "#dc2626" : "#f59e0b",
+              border: "1px solid " + (report.signal === "TRUSTED" ? "rgba(22,163,74,0.3)" : report.signal === "REVOKED" ? "rgba(220,38,38,0.3)" : "rgba(245,158,11,0.3)"),
             }}>
               {report.signal}
             </div>

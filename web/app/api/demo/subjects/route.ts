@@ -8,7 +8,7 @@ export async function GET() {
         label: "Clean Trade Subject",
         domain: "counterparty_trust.ritual_trade_v1",
         action: "trade",
-        expected: "SEALED",
+        expected: "TRUSTED",
         description: "Primary clean counterparty benchmark",
       },
       {
@@ -24,7 +24,7 @@ export async function GET() {
         label: "Agent Safety Subject",
         domain: "agent_safety.ritual_infernet_v1",
         action: "execute",
-        expected: "SEALED",
+        expected: "TRUSTED",
         description: "Dedicated agent safety benchmark",
       },
     ],

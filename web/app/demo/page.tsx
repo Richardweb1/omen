@@ -4,13 +4,13 @@ import { useState } from "react";
 const API = '/api';
 
 const SUBJECTS = [
-  { address: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", label: "Clean Trade Subject", domain: "counterparty_trust.ritual_trade_v1", action: "trade", expected: "SEALED", description: "Primary clean counterparty benchmark" },
-  { address: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c", label: "Active Trade Subject", domain: "counterparty_trust.ritual_trade_v1", action: "trade", expected: "SEALED", description: "High activity counterparty benchmark" },
+  { address: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", label: "Clean Trade Subject", domain: "counterparty_trust.ritual_trade_v1", action: "trade", expected: "TRUSTED", description: "Primary clean counterparty benchmark" },
+  { address: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c", label: "Active Trade Subject", domain: "counterparty_trust.ritual_trade_v1", action: "trade", expected: "TRUSTED", description: "High activity counterparty benchmark" },
   { address: "0x0000000000000000000000000000000000000b0b", label: "Agent Safety Subject", domain: "agent_safety.ritual_infernet_v1", action: "execute", expected: "REVOKED", description: "Dedicated agent safety benchmark" },
 ];
 
 const VSTYLE: any = {
-  SEALED:  { color: "#16a34a", bg: "rgba(22,163,74,0.1)",   border: "rgba(22,163,74,0.3)"   },
+  TRUSTED:  { color: "#16a34a", bg: "rgba(22,163,74,0.1)",   border: "rgba(22,163,74,0.3)"   },
   REVOKED: { color: "#dc2626", bg: "rgba(220,38,38,0.1)",   border: "rgba(220,38,38,0.3)"   },
   PENDING: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.3)"  },
   UNSEEN:  { color: "#666666", bg: "rgba(102,102,102,0.1)", border: "rgba(102,102,102,0.3)" },
@@ -35,7 +35,7 @@ export default function DemoLab() {
     const latency = Date.now() - start;
     setResults((prev: any) => ({ ...prev, [subject.address]: { ...d, latency } }));
   } catch (e) {
-    setResults((prev: any) => ({ ...prev, [subject.address]: { verdict: { value: subject.expected, action: subject.expected === "SEALED" ? "ALLOW" : "DENY" }, handshake: { allowed: subject.expected === "SEALED", reason: "cached result" }, latency: Date.now() - start } }));
+    setResults((prev: any) => ({ ...prev, [subject.address]: { verdict: { value: subject.expected, action: subject.expected === "TRUSTED" ? "ALLOW" : "DENY" }, handshake: { allowed: subject.expected === "TRUSTED", reason: "cached result" }, latency: Date.now() - start } }));
   }
   setLoading(null);
 };

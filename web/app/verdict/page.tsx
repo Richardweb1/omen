@@ -4,13 +4,13 @@ import { useState } from "react";
 const API = '/api';
 
 const DEMO = [
-  { address: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", label: "Clean Trade Subject", expected: "SEALED" },
+  { address: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", label: "Clean Trade Subject", expected: "TRUSTED" },
   { address: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c", label: "Risky Trade Subject", expected: "REVOKED" },
-  { address: "0x0000000000000000000000000000000000000b0b", label: "Agent Safety Subject", expected: "SEALED" },
+  { address: "0x0000000000000000000000000000000000000b0b", label: "Agent Safety Subject", expected: "TRUSTED" },
 ];
 
 const VSTYLE: any = {
-  SEALED:  { color: "#16a34a", bg: "rgba(22,163,74,0.1)",   border: "rgba(22,163,74,0.3)"   },
+  TRUSTED:  { color: "#16a34a", bg: "rgba(22,163,74,0.1)",   border: "rgba(22,163,74,0.3)"   },
   REVOKED: { color: "#dc2626", bg: "rgba(220,38,38,0.1)",   border: "rgba(220,38,38,0.3)"   },
   PENDING: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.3)"  },
   UNSEEN:  { color: "#666666", bg: "rgba(102,102,102,0.1)", border: "rgba(102,102,102,0.3)" },

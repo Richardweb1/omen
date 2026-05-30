@@ -162,12 +162,12 @@ export default function Home() {
               <div style={{ fontSize: "11px", color: "#555", fontFamily: "monospace", marginBottom: "0.75rem" }}>{id}</div>
               <div style={{ fontSize: "13px", color: "#777", lineHeight: "1.5", marginBottom: "1rem" }}>{question}</div>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                {["SEALED", "PENDING", "REVOKED", "UNSEEN"].map(v => (
+                {["TRUSTED", "PENDING", "REVOKED", "UNSEEN"].map(v => (
                   <span key={v} style={{
                     fontSize: "10px", padding: "2px 8px", borderRadius: "4px",
-                    background: v === "SEALED" ? "rgba(22,163,74,0.1)" : v === "REVOKED" ? "rgba(220,38,38,0.1)" : v === "PENDING" ? "rgba(245,158,11,0.1)" : "rgba(102,102,102,0.1)",
-                    color: v === "SEALED" ? "#16a34a" : v === "REVOKED" ? "#dc2626" : v === "PENDING" ? "#f59e0b" : "#666",
-                    border: `1px solid ${v === "SEALED" ? "rgba(22,163,74,0.2)" : v === "REVOKED" ? "rgba(220,38,38,0.2)" : v === "PENDING" ? "rgba(245,158,11,0.2)" : "rgba(102,102,102,0.2)"}`,
+                    background: v === "TRUSTED" ? "rgba(22,163,74,0.1)" : v === "REVOKED" ? "rgba(220,38,38,0.1)" : v === "PENDING" ? "rgba(245,158,11,0.1)" : "rgba(102,102,102,0.1)",
+                    color: v === "TRUSTED" ? "#16a34a" : v === "REVOKED" ? "#dc2626" : v === "PENDING" ? "#f59e0b" : "#666",
+                    border: `1px solid ${v === "TRUSTED" ? "rgba(22,163,74,0.2)" : v === "REVOKED" ? "rgba(220,38,38,0.2)" : v === "PENDING" ? "rgba(245,158,11,0.2)" : "rgba(102,102,102,0.2)"}`,
                   }}>{v}</span>
                 ))}
               </div>
