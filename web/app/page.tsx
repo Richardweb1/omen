@@ -40,7 +40,7 @@ export default function Home() {
             background: "linear-gradient(135deg, #f59e0b, #7c3aed)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
-             before you interact.</span>
+          }}>before you interact.</span>
         </h1>
 
         <p style={{
