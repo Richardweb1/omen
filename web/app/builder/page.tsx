@@ -217,7 +217,7 @@ export default function Builder() {
         <StepCard num="4" title="Read from OmenRegistry" active={step === 3} done={step > 3} onRun={step4} loading={loading && step === 3} disabled={step < 3}>
           {mirror && (
             <div style={{ fontSize: "12px", color: "#666" }}>
-              <div>Verdict: <span style={{ color: style?.color, fontWeight: "600" }}>{mirror.verdict?.value}</span></div>
+              <div>Trust Signal: <span style={{ color: style?.color, fontWeight: "600" }}>{mirror.verdict?.value}</span></div>
               <div>Fresh: <span style={{ color: mirror.verdict?.isFresh ? "#16a34a" : "#dc2626" }}>{mirror.verdict?.isFresh ? "Yes" : "No"}</span></div>
               <div style={{ marginTop: "0.5rem", padding: "8px", background: "#0a0a0a", borderRadius: "6px", border: "1px solid #222" }}>
                 Handshake: <span style={{ color: mirror.handshake?.allowed ? "#16a34a" : "#dc2626", fontWeight: "600" }}>
