@@ -49,10 +49,10 @@ export default function Verdict() {
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "3rem 2rem" }}>
       <div style={{ marginBottom: "2.5rem" }}>
         <h1 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
-          Trust Signal Explorer
+          Trust Signal Check
         </h1>
         <p style={{ color: "#666", fontSize: "14px" }}>
-          Read the latest trust signal for any wallet from OmenRegistry
+          Read the latest trust signal for any address from OmenRegistry
         </p>
       </div>
 
@@ -65,7 +65,7 @@ export default function Verdict() {
           <input
             value={subject}
             onChange={e => setSubject(e.target.value)}
-            placeholder="0x... wallet address"
+            placeholder="0x... wallet or agent address"
             style={{
               flex: 1, background: "#0a0a0a",
               border: "1px solid #222", borderRadius: "8px",
@@ -83,7 +83,7 @@ export default function Verdict() {
               fontSize: "14px", border: "none", cursor: "pointer",
             }}
           >
-            {loading ? "..." : "Look up →"}
+            {loading ? "..." : "Check Signal →"}
           </button>
         </div>
         <select
@@ -159,10 +159,10 @@ export default function Verdict() {
         </div>
       )}
 
-      {/* Demo subjects */}
+      {/* DEMO ADDRESSES */}
       <div>
         <div style={{ fontSize: "12px", color: "#555", marginBottom: "0.75rem", letterSpacing: "0.05em" }}>
-          DEMO SUBJECTS
+          DEMO ADDRESSES
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {DEMO.map(({ address, label, expected }) => (

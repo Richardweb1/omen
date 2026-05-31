@@ -89,10 +89,10 @@ export default function Builder() {
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "3rem 2rem" }}>
       <div style={{ marginBottom: "2.5rem" }}>
         <h1 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
-          Signal Builder
+          Trust Trust Signal Builder
         </h1>
         <p style={{ color: "#666", fontSize: "14px" }}>
-          Build reproducible evidence and evaluate a live verdict on Ritual chain
+          Build reproducible evidence and generate a verifiable trust signal on Ritual chain
         </p>
       </div>
 
@@ -179,7 +179,7 @@ export default function Builder() {
           )}
         </StepCard>
 
-        <StepCard num="3" title="Evaluate Trust Signal on Ritual" active={step === 2} done={step > 2} onRun={step3} loading={loading && step === 2} disabled={step < 2}>
+        <StepCard num="3" title="Generate Trust Signal on Ritual" active={step === 2} done={step > 2} onRun={step3} loading={loading && step === 2} disabled={step < 2}>
           {verdict && (
             <div>
               <div style={{
@@ -214,7 +214,7 @@ export default function Builder() {
           )}
         </StepCard>
 
-        <StepCard num="4" title="Read from OmenRegistry" active={step === 3} done={step > 3} onRun={step4} loading={loading && step === 3} disabled={step < 3}>
+        <StepCard num="4" title="Read Trust Signal from OmenRegistry" active={step === 3} done={step > 3} onRun={step4} loading={loading && step === 3} disabled={step < 3}>
           {mirror && (
             <div style={{ fontSize: "12px", color: "#666" }}>
               <div>Trust Signal: <span style={{ color: style?.color, fontWeight: "600" }}>{mirror.verdict?.value}</span></div>

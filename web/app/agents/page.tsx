@@ -85,7 +85,7 @@ export default function Agents() {
           Agent & Trust Monitor
         </h1>
         <p style={{ color: "#666", fontSize: "14px" }}>
-          Check trust signals for any agent or wallet. All addresses use the same OmenRegistry —
+          Read trust signals for any agent or wallet. All addresses use the same OmenRegistry —
           agents and wallets are evaluated identically.
         </p>
       </div>
@@ -96,7 +96,7 @@ export default function Agents() {
         borderRadius: "12px", padding: "1.5rem", marginBottom: "2rem",
       }}>
         <div style={{ fontSize: "12px", color: "#555", marginBottom: "1rem", letterSpacing: "0.05em" }}>
-          CHECK ANY ADDRESS — WALLET OR AGENT
+          TRUST SIGNAL LOOKUP
         </div>
         <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1rem" }}>
           <input
@@ -120,7 +120,7 @@ export default function Agents() {
               fontSize: "14px", border: "none", cursor: "pointer",
             }}
           >
-            {loading ? "..." : "Check →"}
+            {loading ? "..." : "Read Signal →"}
           </button>
         </div>
         <select
