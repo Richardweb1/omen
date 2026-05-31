@@ -1,20 +1,19 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAccount } from "wagmi";
 import ConnectWallet from "@/components/ConnectWallet";
 
 const links = [
-  { href: "/",        label: "Home"     },
-  { href: "/builder", label: "Builder"  },
-  { href: "/check",   label: "Check"    },
-  { href: "/agents",  label: "Agents"   },
-  { href: "/demo",    label: "Demo"     },
+  { href: "/",                                    label: "Protocol",     external: false },
+  { href: "/check",                               label: "Trust Check",  external: false },
+  { href: "/agents",                              label: "Agents",       external: false },
+  { href: "/#architecture",                       label: "Architecture", external: false },
+  { href: "https://github.com/Richardweb1/omen", label: "Docs",         external: true  },
 ];
 
 export default function Nav() {
   const path = usePathname();
-  const { address, isConnected } = useAccount();
+
   return (
     <nav style={{
       background: "#0f0f0f",
@@ -49,20 +48,26 @@ export default function Nav() {
 
       {/* Links */}
       <div style={{ display: "flex", gap: "0.25rem" }}>
-        {links.map(({ href, label }) => {
-          const active = path === href;
-          return (
-            <Link key={href} href={href} style={{
-              textDecoration: "none",
-              padding: "6px 14px",
-              borderRadius: "6px",
-              fontSize: "13px",
-              fontWeight: active ? "600" : "400",
-              color: active ? "#f59e0b" : "#999",
-              background: active ? "rgba(245,158,11,0.1)" : "transparent",
-              border: active ? "1px solid rgba(245,158,11,0.2)" : "1px solid transparent",
-              transition: "all 0.15s",
-            }}>
+        {links.map(({ href, label, external }) => {
+          const active = !external && path === href;
+          const style = {
+            textDecoration: "none",
+            padding: "6px 14px",
+            borderRadius: "6px",
+            fontSize: "13px",
+            fontWeight: active ? "600" : "400",
+            color: active ? "#f59e0b" : "#999",
+            background: active ? "rgba(245,158,11,0.1)" : "transparent",
+            border: active ? "1px solid rgba(245,158,11,0.2)" : "1px solid transparent",
+            transition: "all 0.15s",
+          } as React.CSSProperties;
+
+          return external ? (
+            <a key={href} href={href} target="_blank" rel="noopener noreferrer" style={style}>
+              {label}
+            </a>
+          ) : (
+            <Link key={href} href={href} style={style}>
               {label}
             </Link>
           );
