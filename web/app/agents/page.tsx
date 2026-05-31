@@ -58,6 +58,7 @@ export default function Agents() {
     const s = addr || subject;
     if (!s) return setError("Enter an agent or wallet address");
     setLoading(true); setError(""); setResult(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
     try {
       const r = await fetch(`${API}/verdict/read`, {
         method: "POST",
