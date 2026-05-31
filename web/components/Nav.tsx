@@ -7,16 +7,14 @@ import ConnectWallet from "@/components/ConnectWallet";
 const links = [
   { href: "/",        label: "Home"     },
   { href: "/builder", label: "Builder"  },
-  { href: "/verdict", label: "Trust Signal" },{ href: "/audit",   label: "Audit"        },
-  { href: "/demo",    label: "Demo Lab" },
-  { href: "/domains", label: "Domains"  },
-  { href: "/proofs",  label: "Proofs"   },
+  { href: "/check",   label: "Check"    },
+  { href: "/agents",  label: "Agents"   },
+  { href: "/demo",    label: "Demo"     },
 ];
 
 export default function Nav() {
   const path = usePathname();
   const { address, isConnected } = useAccount();
-
   return (
     <nav style={{
       background: "#0f0f0f",
@@ -71,7 +69,7 @@ export default function Nav() {
         })}
       </div>
 
-      {/* Right side — chain badge + wallet */}
+      {/* Right side */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
         <div style={{
           display: "flex", alignItems: "center", gap: "6px",

@@ -9,8 +9,8 @@ async function main() {
     "function balanceOf(address user) external view returns (uint256)",
   ], signer);
 
-  console.log("Depositing 0.35 RITUAL for EOA...");
-  const tx = await ritualWallet.deposit(5000, { value: ethers.parseEther("0.35") });
+  console.log("Depositing 0.05 RITUAL for EOA...");
+  const tx = await ritualWallet.deposit(600, { value: ethers.parseEther("0.05") });
   await tx.wait();
   const balance = await ritualWallet.balanceOf(signer.address);
   console.log("✓ EOA RitualWallet balance:", ethers.formatEther(balance), "RITUAL");
