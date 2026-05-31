@@ -1,37 +1,52 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useAccount } from "wagmi";
+import { useAccount, useWriteContract, usePublicClient } from "wagmi";
+import { JUDGMENT_ADDRESS, JUDGMENT_ABI } from "@/lib/contracts";
 
 const API = '/api';
 
 const VERDICT_STYLE: any = {
-  TRUSTED:  { color: "#16a34a", bg: "rgba(22,163,74,0.1)",   border: "rgba(22,163,74,0.3)"   },
-  REVOKED: { color: "#dc2626", bg: "rgba(220,38,38,0.1)",   border: "rgba(220,38,38,0.3)"   },
-  PENDING: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.3)"  },
-  UNSEEN:  { color: "#666666", bg: "rgba(102,102,102,0.1)", border: "rgba(102,102,102,0.3)" },
-  LAPSED:  { color: "#7c3aed", bg: "rgba(124,58,237,0.1)",  border: "rgba(124,58,237,0.3)"  },
+  TRUSTED: { color: "#16a34a", bg: "rgba(22,163,74,0.1)",   border: "rgba(22,163,74,0.3)"  },
+  REVOKED: { color: "#dc2626", bg: "rgba(220,38,38,0.1)",   border: "rgba(220,38,38,0.3)"  },
+  PENDING: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.3)" },
+  UNSEEN:  { color: "#666666", bg: "rgba(102,102,102,0.1)", border: "rgba(102,102,102,0.3)"},
+  LAPSED:  { color: "#7c3aed", bg: "rgba(124,58,237,0.1)",  border: "rgba(124,58,237,0.3)" },
 };
 
+type TxStatus =
+  | "idle"
+  | "preparing"
+  | "sign_submit"
+  | "confirming_submit"
+  | "sign_evaluate"
+  | "confirming_evaluate"
+  | "confirmed"
+  | "error";
+
 export default function Builder() {
-  const { address } = useAccount();
-  const [subject, setSubject] = useState("");
+  const { address, isConnected } = useAccount();
+  const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
 
-  useEffect(() => {
-    if (address) setSubject(address);
-  }, [address]);
+  const [subject, setSubject]   = useState("");
+  const [domain, setDomain]     = useState("counterparty_trust.ritual_trade_v1");
+  const [step, setStep]         = useState(0);
+  const [loading, setLoading]   = useState(false);
+  const [summary, setSummary]   = useState<any>(null);
+  const [signal, setSignal]     = useState<any>(null);
+  const [verdict, setVerdict]   = useState<any>(null);
+  const [mirror, setMirror]     = useState<any>(null);
+  const [error, setError]       = useState("");
+  const [txStatus, setTxStatus] = useState<TxStatus>("idle");
+  const [tx1Hash, setTx1Hash]   = useState<string>("");
+  const [tx2Hash, setTx2Hash]   = useState<string>("");
 
-  const [domain, setDomain]   = useState("counterparty_trust.ritual_trade_v1");
-  const [step, setStep]       = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState<any>(null);
-  const [signal, setSignal]   = useState<any>(null);
-  const [verdict, setVerdict] = useState<any>(null);
-  const [mirror, setMirror]   = useState<any>(null);
-  const [error, setError]     = useState("");
+  useEffect(() => { if (address) setSubject(address); }, [address]);
 
   const reset = () => {
     setStep(0); setSummary(null); setSignal(null);
     setVerdict(null); setMirror(null); setError("");
+    setTxStatus("idle"); setTx1Hash(""); setTx2Hash("");
   };
 
   const call = async (url: string, body: any) => {
@@ -65,11 +80,69 @@ export default function Builder() {
   };
 
   const step3 = async () => {
-    setLoading(true); setError("");
+    if (!isConnected) return setError("Please connect your wallet first");
+    setLoading(true); setError(""); setTxStatus("preparing");
+
     try {
+      // Step 1 — prepare data from server (no signing)
       const d = await call("/verdict/evaluate", { subject, domain });
-      setVerdict(d); setStep(3);
-    } catch (e: any) { setError(e.message); }
+      setVerdict(d);
+
+      const { merkleRoot, features, reasoning, startBlock, endBlock } = d.txData;
+      const merkleBytes = merkleRoot as `0x${string}`;
+
+      // Step 2 — user signs submitSignal
+      setTxStatus("sign_submit");
+      const hash1 = await writeContractAsync({
+        address: JUDGMENT_ADDRESS,
+        abi: JUDGMENT_ABI,
+        functionName: "submitSignal",
+        args: [
+          subject as `0x${string}`,
+          domain,
+          merkleBytes,
+          BigInt(startBlock),
+          BigInt(endBlock),
+        ],
+        gas: BigInt(500000),
+      });
+      setTx1Hash(hash1);
+
+      // Step 3 — wait for submitSignal confirmation
+      setTxStatus("confirming_submit");
+      await publicClient?.waitForTransactionReceipt({ hash: hash1 });
+
+      // Step 4 — user signs evaluateDeterministic
+      setTxStatus("sign_evaluate");
+      const hash2 = await writeContractAsync({
+        address: JUDGMENT_ADDRESS,
+        abi: JUDGMENT_ABI,
+        functionName: "evaluateDeterministic",
+        args: [
+          subject as `0x${string}`,
+          domain,
+          features.map((f: number) => BigInt(f)),
+          reasoning,
+        ],
+        gas: BigInt(500000),
+      });
+      setTx2Hash(hash2);
+
+      // Step 5 — wait for evaluateDeterministic confirmation
+      setTxStatus("confirming_evaluate");
+      await publicClient?.waitForTransactionReceipt({ hash: hash2 });
+
+      setTxStatus("confirmed");
+      setStep(3);
+
+    } catch (e: any) {
+      setTxStatus("error");
+      setError(
+        e.message?.includes("User rejected") || e.message?.includes("user rejected")
+          ? "Transaction rejected — you cancelled the wallet popup."
+          : e.message?.slice(0, 120)
+      );
+    }
     setLoading(false);
   };
 
@@ -85,23 +158,45 @@ export default function Builder() {
   const vs = verdict?.verdict?.value || summary?.preview?.verdict;
   const style = vs ? VERDICT_STYLE[vs] || VERDICT_STYLE.UNSEEN : null;
 
+  const txStatusMessage: Record<TxStatus, string> = {
+    idle:                "",
+    preparing:           "⏳ Preparing trust signal data...",
+    sign_submit:         "✍️ Waiting for you to sign submitSignal in your wallet...",
+    confirming_submit:   "⛓️ submitSignal submitted — waiting for confirmation...",
+    sign_evaluate:       "✍️ Waiting for you to sign evaluateDeterministic in your wallet...",
+    confirming_evaluate: "⛓️ evaluateDeterministic submitted — waiting for confirmation...",
+    confirmed:           "✅ Trust signal confirmed onchain.",
+    error:               "",
+  };
+
   return (
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "3rem 2rem" }}>
       <div style={{ marginBottom: "2.5rem" }}>
         <h1 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
-          Trust Trust Signal Builder
+          Trust Signal Builder
         </h1>
-        <p style={{ color: "#666", fontSize: "14px" }}>
+        <p style={{ color: "#b0b0b0", fontSize: "14px" }}>
           Build reproducible evidence and generate a verifiable trust signal on Ritual chain
         </p>
       </div>
+
+      {/* Wallet warning */}
+      {!isConnected && (
+        <div style={{
+          background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)",
+          borderRadius: "8px", padding: "10px 14px",
+          color: "#f59e0b", fontSize: "13px", marginBottom: "1rem",
+        }}>
+          ⚠️ Connect your wallet to sign transactions. You will pay gas for step 3.
+        </div>
+      )}
 
       <div style={{
         background: "#111", border: "1px solid #1a1a1a",
         borderRadius: "12px", padding: "1.5rem", marginBottom: "1.5rem",
       }}>
         <div style={{ marginBottom: "1rem" }}>
-          <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "6px" }}>
+          <label style={{ fontSize: "12px", color: "#8a8a8a", display: "block", marginBottom: "6px" }}>
             SUBJECT ADDRESS
           </label>
           <input
@@ -118,7 +213,7 @@ export default function Builder() {
           />
         </div>
         <div>
-          <label style={{ fontSize: "12px", color: "#666", display: "block", marginBottom: "6px" }}>
+          <label style={{ fontSize: "12px", color: "#8a8a8a", display: "block", marginBottom: "6px" }}>
             DOMAIN
           </label>
           <select
@@ -147,40 +242,53 @@ export default function Builder() {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+
+        {/* Step 1 */}
         <StepCard num="1" title="Build Evidence Summary" active={step === 0} done={step > 0} onRun={step1} loading={loading && step === 0}>
           {summary && (
             <div>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
                 {Object.entries(summary.features).map(([k, v]) => (
                   <div key={k} style={{ background: "#0a0a0a", border: "1px solid #222", borderRadius: "6px", padding: "4px 10px", fontSize: "12px" }}>
-                    <span style={{ color: "#555" }}>{k}: </span>
+                    <span style={{ color: "#8a8a8a" }}>{k}: </span>
                     <span style={{ color: "#f5f5f5" }}>{String(v)}</span>
                   </div>
                 ))}
               </div>
-              <div style={{ fontSize: "11px", color: "#444", fontFamily: "monospace" }}>
+              <div style={{ fontSize: "11px", color: "#8a8a8a", fontFamily: "monospace" }}>
                 merkle: {summary.merkleRoot?.slice(0, 20)}...
               </div>
             </div>
           )}
         </StepCard>
 
+        {/* Step 2 */}
         <StepCard num="2" title="Build SignalObject" active={step === 1} done={step > 1} onRun={step2} loading={loading && step === 1} disabled={step < 1}>
           {signal && (
-            <div style={{ fontSize: "12px", color: "#666" }}>
+            <div style={{ fontSize: "12px", color: "#b0b0b0" }}>
               <div>Type: <span style={{ color: "#f5f5f5" }}>{signal.type}</span></div>
               <div>Version: <span style={{ color: "#f5f5f5" }}>{signal.version}</span></div>
               <div>Blocks: <span style={{ color: "#f5f5f5" }}>{signal.blockWindow?.startBlock} → {signal.blockWindow?.endBlock}</span></div>
               <div style={{ marginTop: "0.5rem", padding: "8px", background: "#0a0a0a", borderRadius: "6px", border: "1px solid #222" }}>
-                Preview: <span style={{ color: style?.color || "#666", fontWeight: "600" }}>{signal.readingArtifact?.verdict}</span>
-                <span style={{ color: "#555", marginLeft: "8px", fontSize: "11px" }}>{signal.readingArtifact?.reasoning}</span>
+                Preview: <span style={{ color: style?.color || "#b0b0b0", fontWeight: "600" }}>{signal.readingArtifact?.verdict}</span>
+                <span style={{ color: "#8a8a8a", marginLeft: "8px", fontSize: "11px" }}>{signal.readingArtifact?.reasoning}</span>
               </div>
             </div>
           )}
         </StepCard>
 
+        {/* Step 3 — wallet signing */}
         <StepCard num="3" title="Generate Trust Signal on Ritual" active={step === 2} done={step > 2} onRun={step3} loading={loading && step === 2} disabled={step < 2}>
-          {verdict && (
+          {txStatus !== "idle" && txStatus !== "error" && (
+            <div style={{
+              background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.2)",
+              borderRadius: "8px", padding: "10px 14px",
+              color: "#cfcfcf", fontSize: "13px", marginBottom: "0.75rem",
+            }}>
+              {txStatusMessage[txStatus]}
+            </div>
+          )}
+          {verdict && step > 2 && (
             <div>
               <div style={{
                 display: "inline-block", padding: "6px 16px", borderRadius: "6px",
@@ -190,23 +298,18 @@ export default function Builder() {
               }}>
                 {verdict.verdict?.value} — {verdict.verdict?.action}
               </div>
-              <div style={{ fontSize: "12px", color: "#555" }}>{verdict.verdict?.reasoning}</div>
-              {verdict.transactions && (
-                <div style={{ marginTop: "0.75rem", fontSize: "11px", color: "#444", fontFamily: "monospace" }}>
-                  {verdict.transactions.submitSignal?.hash && verdict.transactions.submitSignal.hash !== "onchain-via-ritual" && verdict.transactions.submitSignal.hash !== "env-not-set" ? (
-                    <>
-                      <a href={`https://explorer.ritualfoundation.org/tx/${verdict.transactions.submitSignal.hash}`} target="_blank" style={{ color: "#7c3aed", display: "block" }}>
-                        tx1: {String(verdict.transactions.submitSignal.hash).slice(0, 20)}... ↗
-                      </a>
-                      <a href={`https://explorer.ritualfoundation.org/tx/${verdict.transactions.evaluateVerdict?.hash}`} target="_blank" style={{ color: "#7c3aed", display: "block" }}>
-                        tx2: {String(verdict.transactions.evaluateVerdict?.hash).slice(0, 20)}... ↗
-                      </a>
-                    </>
-                  ) : (
-                    <>
-                      <a href="https://explorer.ritualfoundation.org/address/0xc32a1e26e77664753b4A54a4312dF0a8159147D0" target="_blank" style={{ color: "#7c3aed", display: "block" }}>OmenJudgment → explorer ↗</a>
-                      <a href="https://explorer.ritualfoundation.org/address/0xCbB34EB8651dc8f1d65a20165C1166C13f626620" target="_blank" style={{ color: "#7c3aed", display: "block" }}>OmenRegistry → explorer ↗</a>
-                    </>
+              <div style={{ fontSize: "12px", color: "#b0b0b0", marginBottom: "0.75rem" }}>
+                {verdict.verdict?.reasoning}
+              </div>
+              {tx1Hash && (
+                <div style={{ fontSize: "11px", fontFamily: "monospace" }}>
+                  <a href={`https://explorer.ritualfoundation.org/tx/${tx1Hash}`} target="_blank" style={{ color: "#7c3aed", display: "block" }}>
+                    tx1 submitSignal: {tx1Hash.slice(0, 20)}... ↗
+                  </a>
+                  {tx2Hash && (
+                    <a href={`https://explorer.ritualfoundation.org/tx/${tx2Hash}`} target="_blank" style={{ color: "#7c3aed", display: "block" }}>
+                      tx2 evaluateDeterministic: {tx2Hash.slice(0, 20)}... ↗
+                    </a>
                   )}
                 </div>
               )}
@@ -214,20 +317,22 @@ export default function Builder() {
           )}
         </StepCard>
 
+        {/* Step 4 */}
         <StepCard num="4" title="Read Trust Signal from OmenRegistry" active={step === 3} done={step > 3} onRun={step4} loading={loading && step === 3} disabled={step < 3}>
           {mirror && (
-            <div style={{ fontSize: "12px", color: "#666" }}>
+            <div style={{ fontSize: "12px", color: "#b0b0b0" }}>
               <div>Trust Signal: <span style={{ color: style?.color, fontWeight: "600" }}>{mirror.verdict?.value}</span></div>
               <div>Fresh: <span style={{ color: mirror.verdict?.isFresh ? "#16a34a" : "#dc2626" }}>{mirror.verdict?.isFresh ? "Yes" : "No"}</span></div>
               <div style={{ marginTop: "0.5rem", padding: "8px", background: "#0a0a0a", borderRadius: "6px", border: "1px solid #222" }}>
                 Handshake: <span style={{ color: mirror.handshake?.allowed ? "#16a34a" : "#dc2626", fontWeight: "600" }}>
                   {mirror.handshake?.allowed ? "ALLOWED" : "DENIED"}
                 </span>
-                <div style={{ color: "#444", fontSize: "11px", marginTop: "2px" }}>{mirror.handshake?.reason}</div>
+                <div style={{ color: "#8a8a8a", fontSize: "11px", marginTop: "2px" }}>{mirror.handshake?.reason}</div>
               </div>
             </div>
           )}
         </StepCard>
+
       </div>
     </div>
   );
@@ -253,7 +358,7 @@ function StepCard({ num, title, active, done, onRun, loading, disabled, children
           }}>
             {done ? "✓" : num}
           </div>
-          <span style={{ fontSize: "14px", fontWeight: "500", color: active ? "#f5f5f5" : done ? "#999" : "#666" }}>
+          <span style={{ fontSize: "14px", fontWeight: "500", color: active ? "#f5f5f5" : done ? "#999" : "#8a8a8a" }}>
             {title}
           </span>
         </div>
