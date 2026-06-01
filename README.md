@@ -1,4 +1,9 @@
-<img width="1226" height="682" alt="omen image" src="https://github.com/user-attachments/assets/628b45bd-7b69-40f7-ad2b-c287a0b3a514" />
+<img width="1857" height="915" alt="image" src="https://github.com/user-attachments/assets/4b1c5cac-4f4d-4af8-8182-109748fecd07" />
+<img width="1062" height="857" alt="image" src="https://github.com/user-attachments/assets/0e2aa7fa-544a-4a67-87b5-3f7ade3df9f4" />
+<img width="873" height="876" alt="image" src="https://github.com/user-attachments/assets/dc1ee03a-b013-406c-abd9-6e5debf2065f" />
+
+
+
 
 ## Omen — Trust Infrastructure for Ritual Agents
 
