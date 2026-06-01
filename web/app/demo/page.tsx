@@ -38,7 +38,7 @@ export default function DemoLab() {
       setResults((prev: any) => ({
         ...prev,
         [subject.address]: {
-          verdict: { value: subject.expected, action: subject.expected === "TRUSTED" ? "ALLOW" : "DENY" },
+          verdict: { value: subject.expected, action: subject.expected === "TRUSTED" ? "Execution allowed" : "Execution denied" },
           handshake: { allowed: subject.expected === "TRUSTED", reason: "cached result" },
           latency: Date.now() - start,
         },
@@ -100,12 +100,13 @@ export default function DemoLab() {
       )}
 
       {/* Benchmark subjects */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "3rem" }}>
         {SUBJECTS.map((subject) => {
           const result    = results[subject.address];
           const vs        = result?.verdict?.value;
           const style     = vs ? VSTYLE[vs] || VSTYLE.UNSEEN : VSTYLE[subject.expected];
           const isLoading = loading === subject.address;
+          const actionLabel = vs === "TRUSTED" ? "Execution allowed" : vs === "REVOKED" ? "Execution denied" : result?.verdict?.action;
 
           return (
             <div key={subject.address} style={{
@@ -147,10 +148,10 @@ export default function DemoLab() {
               {result && !result.error && (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.5rem" }}>
                   {[
-                    { label: "Signal",    value: result.verdict?.value,                            color: style?.color },
-                    { label: "Action",    value: result.verdict?.action,                           color: "#f5f5f5" },
-                    { label: "Handshake", value: result.handshake?.allowed ? "ALLOWED" : "DENIED", color: result.handshake?.allowed ? "#16a34a" : "#dc2626" },
-                    { label: "Latency",   value: `${result.latency}ms`,                            color: "#7c3aed" },
+                    { label: "Signal",    value: vs,                                                 color: style?.color },
+                    { label: "Action",    value: actionLabel,                                        color: "#f5f5f5" },
+                    { label: "Handshake", value: result.handshake?.allowed ? "ALLOWED" : "DENIED",   color: result.handshake?.allowed ? "#16a34a" : "#dc2626" },
+                    { label: "Latency",   value: `${result.latency}ms`,                              color: "#7c3aed" },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{
                       background: "#0a0a0a", border: "1px solid #1a1a1a",
@@ -168,19 +169,43 @@ export default function DemoLab() {
       </div>
 
       {/* Agent Execution Simulator */}
-      <div style={{ marginBottom: "2rem" }}>
+      <div style={{ marginBottom: "3rem" }}>
         <div style={{ marginBottom: "1.5rem" }}>
           <div style={{ fontSize: "11px", color: "#8a8a8a", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>
             AGENT-AWARE EXECUTION DEMO
           </div>
-          <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
+          <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.75rem" }}>
             How OmenAgentAware Behaves
           </h2>
-          <p style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.6" }}>
-            OmenAgentAware checks OmenRegistry before executing any action. The trust signal determines whether the agent proceeds or rejects.
+          <p style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.7" }}>
+            OmenAgentAware queries OmenRegistry before autonomous execution.
           </p>
+          <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
+            <span style={{
+              fontSize: "12px", padding: "2px 10px", borderRadius: "4px",
+              color: "#16a34a", background: "rgba(22,163,74,0.08)",
+              border: "1px solid rgba(22,163,74,0.2)", fontWeight: "600",
+            }}>TRUSTED → proceed</span>
+            <span style={{
+              fontSize: "12px", padding: "2px 10px", borderRadius: "4px",
+              color: "#dc2626", background: "rgba(220,38,38,0.08)",
+              border: "1px solid rgba(220,38,38,0.2)", fontWeight: "600",
+            }}>REVOKED → reject</span>
+          </div>
         </div>
         <AgentDemo />
+
+        {/* Protocol statement */}
+        <div style={{
+          marginTop: "1.25rem", padding: "1rem 1.25rem",
+          background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.12)",
+          borderRadius: "8px",
+        }}>
+          <p style={{ fontSize: "12px", color: "#8a8a8a", lineHeight: "1.7", margin: 0 }}>
+            Omen does not only evaluate addresses.
+            It enables agents to modify their behavior based on verifiable trust signals.
+          </p>
+        </div>
       </div>
 
       {/* Contract addresses */}
@@ -243,7 +268,6 @@ function AgentDemo() {
     });
     const d = await r.json();
     setSignal(d);
-
     await new Promise(res => setTimeout(res, 1000));
 
     if (d.verdict?.value === "TRUSTED") {
@@ -262,6 +286,31 @@ function AgentDemo() {
       background: "#111", border: "1px solid #1a1a1a",
       borderRadius: "12px", padding: "1.5rem",
     }}>
+
+      {/* Agent badge */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem" }}>
+        <div style={{
+          width: "32px", height: "32px", borderRadius: "8px",
+          background: "rgba(124,58,237,0.15)",
+          border: "1px solid rgba(124,58,237,0.3)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: "14px",
+        }}>⬡</div>
+        <div>
+          <div style={{ fontSize: "13px", fontWeight: "600", color: "#f5f5f5" }}>OmenAgentAware</div>
+          <div style={{
+            display: "inline-block", fontSize: "9px", padding: "1px 7px",
+            borderRadius: "4px", marginTop: "2px",
+            color: "#7c3aed", background: "rgba(124,58,237,0.1)",
+            border: "1px solid rgba(124,58,237,0.2)",
+            fontWeight: "700", letterSpacing: "0.06em",
+          }}>TRUST-AWARE AGENT</div>
+        </div>
+        <div style={{ marginLeft: "auto", fontSize: "11px", color: "#444", fontFamily: "monospace" }}>
+          0x5690BafF...0a295
+        </div>
+      </div>
+
       {/* Scenario picker */}
       <div style={{ marginBottom: "1.25rem" }}>
         <div style={{ fontSize: "11px", color: "#8a8a8a", marginBottom: "0.75rem", letterSpacing: "0.05em" }}>
@@ -297,16 +346,62 @@ function AgentDemo() {
         </div>
       </div>
 
-      {/* Flow visualization */}
+      {/* Decision flow */}
       {selected && (
         <div style={{
           background: "#0a0a0a", border: "1px solid #1a1a1a",
           borderRadius: "10px", padding: "1.25rem",
         }}>
-          <div style={{ fontSize: "11px", color: "#8a8a8a", marginBottom: "1rem", letterSpacing: "0.05em" }}>
-            AGENT EXECUTION FLOW — OmenAgentAware
+          <div style={{ fontSize: "11px", color: "#8a8a8a", marginBottom: "1.25rem", letterSpacing: "0.05em" }}>
+            AGENT EXECUTION FLOW
           </div>
 
+          {/* Visual pipeline */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center",
+            gap: "0", marginBottom: "1.5rem", flexWrap: "nowrap", overflowX: "auto",
+          }}>
+            {[
+              { label: "Address", sub: selected.address.slice(0, 10) + "...", color: "#8a8a8a", done: true },
+              null,
+              { label: "OmenRegistry", sub: "query trust", color: "#7c3aed", done: ["executing","rejected","executed"].includes(simState) },
+              null,
+              { label: "Trust Signal", sub: signal ? signal.verdict?.value : "...", color: signal?.verdict?.value === "TRUSTED" ? "#16a34a" : signal ? "#dc2626" : "#8a8a8a", done: ["executing","rejected","executed"].includes(simState) },
+              null,
+              {
+                label: simState === "executed" ? "Execution Allowed" : simState === "rejected" ? "Execution Denied" : "Decision",
+                sub: simState === "executed" ? "agent proceeds" : simState === "rejected" ? "agent rejects" : "pending...",
+                color: simState === "executed" ? "#16a34a" : simState === "rejected" ? "#dc2626" : "#8a8a8a",
+                done: ["executed","rejected"].includes(simState),
+              },
+            ].map((item, i) => {
+              if (!item) return (
+                <div key={i} style={{ display: "flex", alignItems: "center", padding: "0 2px" }}>
+                  <div style={{ width: "24px", height: "1px", background: "#2a2a2a" }}/>
+                  <div style={{
+                    width: "4px", height: "4px",
+                    borderTop: "1px solid #3a3a3a",
+                    borderRight: "1px solid #3a3a3a",
+                    transform: "rotate(45deg)", marginLeft: "-3px",
+                  }}/>
+                </div>
+              );
+              return (
+                <div key={i} style={{
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: "4px",
+                  padding: "8px 12px",
+                  background: item.done ? `${item.color}11` : "rgba(255,255,255,0.02)",
+                  border: `1px solid ${item.done ? item.color + "33" : "#1a1a1a"}`,
+                  borderRadius: "8px", minWidth: "90px", transition: "all 0.3s",
+                }}>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: item.done ? item.color : "#cfcfcf", whiteSpace: "nowrap" }}>{item.label}</div>
+                  <div style={{ fontSize: "9px", color: item.done ? item.color : "#555", whiteSpace: "nowrap", fontFamily: "monospace" }}>{item.sub}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Step list */}
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             {[
               {
@@ -327,11 +422,11 @@ function AgentDemo() {
               },
               {
                 id: "decision",
-                label: simState === "rejected" ? "3. Agent Rejects Action" : "3. Agent Executes Action",
+                label: simState === "rejected" ? "3. Execution Denied" : "3. Execution Allowed",
                 detail: simState === "executed"
-                  ? "✓ Action authorized and executed by OmenAgentAware"
+                  ? "✓ Action authorized — OmenAgentAware proceeds"
                   : simState === "rejected"
-                  ? "✗ Action blocked — trust signal is REVOKED"
+                  ? "✗ Execution blocked — trust signal is REVOKED"
                   : "Awaiting trust signal...",
                 active: simState === "executing",
                 done: ["executed","rejected"].includes(simState),
@@ -378,12 +473,12 @@ function AgentDemo() {
                   fontSize: "13px", fontWeight: "700", marginBottom: "2px",
                   color: simState === "executed" ? "#16a34a" : "#dc2626",
                 }}>
-                  {simState === "executed" ? "✓ Agent Executed" : "✗ Agent Rejected"}
+                  {simState === "executed" ? "✓ Execution Allowed" : "✗ Execution Denied"}
                 </div>
                 <div style={{ fontSize: "11px", color: "#8a8a8a" }}>
                   {simState === "executed"
-                    ? "OmenAgentAware confirmed TRUSTED signal and proceeded"
-                    : "OmenAgentAware detected REVOKED signal and blocked execution"}
+                    ? "OmenAgentAware confirmed TRUSTED signal — action authorized"
+                    : "OmenAgentAware detected REVOKED signal — execution blocked"}
                 </div>
               </div>
               <button
@@ -400,13 +495,6 @@ function AgentDemo() {
           )}
         </div>
       )}
-
-      {/* Contract ref */}
-      <div style={{ marginTop: "1rem", fontSize: "11px", color: "#444" }}>
-        Contract: <span style={{ fontFamily: "monospace", color: "#555" }}>OmenAgentAware · 0x5690BafF...0a295</span>
-        <span style={{ margin: "0 6px", color: "#333" }}>·</span>
-        <span style={{ color: "#555" }}>Ritual Chain 1979</span>
-      </div>
     </div>
   );
 }
