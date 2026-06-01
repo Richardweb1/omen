@@ -1,6 +1,7 @@
 "use client";
 import { createConfig, http, WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { injected } from "wagmi/connectors";
 
 const ritualChain = {
   id: 1979,
@@ -12,7 +13,10 @@ const ritualChain = {
 
 const config = createConfig({
   chains: [ritualChain],
-  transports: { [ritualChain.id]: http() },
+  connectors: [injected()],
+  transports: {
+    [ritualChain.id]: http("/api/rpc"),
+  },
 });
 
 const queryClient = new QueryClient();

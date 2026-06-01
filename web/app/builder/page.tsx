@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useAccount, useWriteContract, usePublicClient } from "wagmi";
+import { useAccount, useSendTransaction } from "wagmi";
+import { encodeFunctionData } from "viem";
 import { JUDGMENT_ADDRESS, JUDGMENT_ABI } from "@/lib/contracts";
 
 const API = '/api';
@@ -25,8 +26,7 @@ type TxStatus =
 
 export default function Builder() {
   const { address, isConnected } = useAccount();
-  const publicClient = usePublicClient();
-  const { writeContractAsync } = useWriteContract();
+  const { sendTransactionAsync } = useSendTransaction();
 
   const [subject, setSubject]   = useState("");
   const [domain, setDomain]     = useState("counterparty_trust.ritual_trade_v1");
@@ -40,7 +40,9 @@ export default function Builder() {
   const [txStatus, setTxStatus] = useState<TxStatus>("idle");
   const [tx1Hash, setTx1Hash]   = useState<string>("");
   const [tx2Hash, setTx2Hash]   = useState<string>("");
+  const [mounted, setMounted]   = useState(false);
 
+  useEffect(() => { setMounted(true); }, []);
   useEffect(() => { if (address) setSubject(address); }, [address]);
 
   const reset = () => {
@@ -84,38 +86,54 @@ export default function Builder() {
     setLoading(true); setError(""); setTxStatus("preparing");
 
     try {
-      // Step 1 — prepare data from server (no signing)
+      // Get prepared data from server
       const d = await call("/verdict/evaluate", { subject, domain });
       setVerdict(d);
 
       const { merkleRoot, features, reasoning, startBlock, endBlock } = d.txData;
-      const merkleBytes = merkleRoot as `0x${string}`;
 
-      // Step 2 — user signs submitSignal
+      // TX 1 — submitSignal — encode + send raw (no simulation)
       setTxStatus("sign_submit");
-      const hash1 = await writeContractAsync({
-        address: JUDGMENT_ADDRESS,
+      const data1 = encodeFunctionData({
         abi: JUDGMENT_ABI,
         functionName: "submitSignal",
         args: [
           subject as `0x${string}`,
           domain,
-          merkleBytes,
+          merkleRoot as `0x${string}`,
           BigInt(startBlock),
           BigInt(endBlock),
         ],
-        gas: BigInt(500000),
+      });
+
+      const hash1 = await sendTransactionAsync({
+        to: JUDGMENT_ADDRESS,
+        data: data1,
+        gas: BigInt(2_000_000),
       });
       setTx1Hash(hash1);
 
-      // Step 3 — wait for submitSignal confirmation
+      // Wait for TX 1
       setTxStatus("confirming_submit");
-      await publicClient?.waitForTransactionReceipt({ hash: hash1 });
+      let confirmed1 = false;
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+          const res = await fetch("/api/rpc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getTransactionReceipt", params: [hash1], id: 1 }),
+          });
+          const data = await res.json();
+          if (data.result?.status === "0x1") { confirmed1 = true; break; }
+          if (data.result?.status === "0x0") throw new Error("submitSignal transaction failed");
+        } catch {}
+      }
+      if (!confirmed1) throw new Error("submitSignal timed out");
 
-      // Step 4 — user signs evaluateDeterministic
+      // TX 2 — evaluateDeterministic — encode + send raw
       setTxStatus("sign_evaluate");
-      const hash2 = await writeContractAsync({
-        address: JUDGMENT_ADDRESS,
+      const data2 = encodeFunctionData({
         abi: JUDGMENT_ABI,
         functionName: "evaluateDeterministic",
         args: [
@@ -124,13 +142,32 @@ export default function Builder() {
           features.map((f: number) => BigInt(f)),
           reasoning,
         ],
-        gas: BigInt(500000),
+      });
+
+      const hash2 = await sendTransactionAsync({
+        to: JUDGMENT_ADDRESS,
+        data: data2,
+        gas: BigInt(2_000_000),
       });
       setTx2Hash(hash2);
 
-      // Step 5 — wait for evaluateDeterministic confirmation
+      // Wait for TX 2
       setTxStatus("confirming_evaluate");
-      await publicClient?.waitForTransactionReceipt({ hash: hash2 });
+      let confirmed2 = false;
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+          const res = await fetch("/api/rpc", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getTransactionReceipt", params: [hash2], id: 1 }),
+          });
+          const data = await res.json();
+          if (data.result?.status === "0x1") { confirmed2 = true; break; }
+          if (data.result?.status === "0x0") throw new Error("evaluateDeterministic transaction failed");
+        } catch {}
+      }
+      if (!confirmed2) throw new Error("evaluateDeterministic timed out");
 
       setTxStatus("confirmed");
       setStep(3);
@@ -161,10 +198,10 @@ export default function Builder() {
   const txStatusMessage: Record<TxStatus, string> = {
     idle:                "",
     preparing:           "⏳ Preparing trust signal data...",
-    sign_submit:         "✍️ Waiting for you to sign submitSignal in your wallet...",
-    confirming_submit:   "⛓️ submitSignal submitted — waiting for confirmation...",
-    sign_evaluate:       "✍️ Waiting for you to sign evaluateDeterministic in your wallet...",
-    confirming_evaluate: "⛓️ evaluateDeterministic submitted — waiting for confirmation...",
+    sign_submit:         "✍️ Sign submitSignal in your wallet...",
+    confirming_submit:   "⛓️ submitSignal confirming on Ritual...",
+    sign_evaluate:       "✍️ Sign evaluateDeterministic in your wallet...",
+    confirming_evaluate: "⛓️ evaluateDeterministic confirming on Ritual...",
     confirmed:           "✅ Trust signal confirmed onchain.",
     error:               "",
   };
@@ -180,14 +217,13 @@ export default function Builder() {
         </p>
       </div>
 
-      {/* Wallet warning */}
-      {!isConnected && (
+      {mounted && !isConnected && (
         <div style={{
           background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)",
           borderRadius: "8px", padding: "10px 14px",
           color: "#f59e0b", fontSize: "13px", marginBottom: "1rem",
         }}>
-          ⚠️ Connect your wallet to sign transactions. You will pay gas for step 3.
+          ⚠️ Connect your wallet to sign transactions in step 3. You will pay gas.
         </div>
       )}
 
@@ -243,7 +279,6 @@ export default function Builder() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
 
-        {/* Step 1 */}
         <StepCard num="1" title="Build Evidence Summary" active={step === 0} done={step > 0} onRun={step1} loading={loading && step === 0}>
           {summary && (
             <div>
@@ -262,7 +297,6 @@ export default function Builder() {
           )}
         </StepCard>
 
-        {/* Step 2 */}
         <StepCard num="2" title="Build SignalObject" active={step === 1} done={step > 1} onRun={step2} loading={loading && step === 1} disabled={step < 1}>
           {signal && (
             <div style={{ fontSize: "12px", color: "#b0b0b0" }}>
@@ -277,7 +311,6 @@ export default function Builder() {
           )}
         </StepCard>
 
-        {/* Step 3 — wallet signing */}
         <StepCard num="3" title="Generate Trust Signal on Ritual" active={step === 2} done={step > 2} onRun={step3} loading={loading && step === 2} disabled={step < 2}>
           {txStatus !== "idle" && txStatus !== "error" && (
             <div style={{
@@ -317,7 +350,6 @@ export default function Builder() {
           )}
         </StepCard>
 
-        {/* Step 4 */}
         <StepCard num="4" title="Read Trust Signal from OmenRegistry" active={step === 3} done={step > 3} onRun={step4} loading={loading && step === 3} disabled={step < 3}>
           {mirror && (
             <div style={{ fontSize: "12px", color: "#b0b0b0" }}>
