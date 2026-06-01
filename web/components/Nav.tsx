@@ -7,7 +7,7 @@ const links = [
   { href: "/",                                    label: "Protocol",     external: false },
   { href: "/check",                               label: "Trust Check",  external: false },
   { href: "/agents",                              label: "Agents",       external: false },
-  { href: "/#architecture",                       label: "Architecture", external: false },
+  { href: "/architecture",                        label: "Architecture", external: false },
   { href: "/demo",                               label: "Demo",         external: false },
   { href: "https://github.com/Richardweb1/omen", label: "Docs",         external: true  },
 ];
