@@ -21,6 +21,7 @@ export default function DemoLab() {
   const [loading, setLoading] = useState<string | null>(null);
   const [runAll, setRunAll]   = useState(false);
   const [stats, setStats]     = useState<any>(null);
+  const [metrics, setMetrics] = useState({ checks: 0, allowed: 0, denied: 0 });
 
   const runHandshake = async (subject: typeof SUBJECTS[0]) => {
     setLoading(subject.address);
@@ -33,6 +34,12 @@ export default function DemoLab() {
       });
       const d = await r.json();
       const latency = Date.now() - start;
+      const isAllowed = d.handshake?.allowed;
+      setMetrics(prev => ({
+        checks: prev.checks + 1,
+        allowed: prev.allowed + (isAllowed ? 1 : 0),
+        denied: prev.denied + (!isAllowed ? 1 : 0),
+      }));
       setResults((prev: any) => ({ ...prev, [subject.address]: { ...d, latency } }));
     } catch {
       setResults((prev: any) => ({
@@ -74,6 +81,27 @@ export default function DemoLab() {
         }}>
           {runAll ? "Running..." : "Run All →"}
         </button>
+      </div>
+
+      {/* Live metrics */}
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
+        gap: "1px", background: "#1a1a1a",
+        border: "1px solid #1a1a1a", borderRadius: "12px",
+        overflow: "hidden", marginBottom: "2rem",
+      }}>
+        {[
+          { label: "Agent Checks Performed", value: metrics.checks, color: "#f59e0b" },
+          { label: "Allowed Executions",     value: metrics.allowed, color: "#16a34a" },
+          { label: "Denied Executions",      value: metrics.denied,  color: "#dc2626" },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{ background: "#0d0d0d", padding: "1.25rem", textAlign: "center" }}>
+            <div style={{ fontSize: "1.75rem", fontWeight: "700", color, marginBottom: "4px", fontFamily: "monospace" }}>
+              {value}
+            </div>
+            <div style={{ fontSize: "11px", color: "#8a8a8a", letterSpacing: "0.04em" }}>{label}</div>
+          </div>
+        ))}
       </div>
 
       {/* Stats */}
@@ -138,10 +166,10 @@ export default function DemoLab() {
               {result && !result.error && (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.5rem" }}>
                   {[
-                    { label: "Signal",    value: vs,                                                color: style?.color },
-                    { label: "Action",    value: actionLabel,                                       color: "#f5f5f5" },
-                    { label: "Handshake", value: result.handshake?.allowed ? "ALLOWED" : "DENIED",  color: result.handshake?.allowed ? "#16a34a" : "#dc2626" },
-                    { label: "Latency",   value: `${result.latency}ms`,                             color: "#7c3aed" },
+                    { label: "Signal",    value: vs,                                               color: style?.color },
+                    { label: "Action",    value: actionLabel,                                      color: "#f5f5f5" },
+                    { label: "Handshake", value: result.handshake?.allowed ? "ALLOWED" : "DENIED", color: result.handshake?.allowed ? "#16a34a" : "#dc2626" },
+                    { label: "Latency",   value: `${result.latency}ms`,                            color: "#7c3aed" },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{
                       background: "#0a0a0a", border: "1px solid #1a1a1a",
@@ -160,6 +188,8 @@ export default function DemoLab() {
 
       {/* Agent Execution Simulator */}
       <div style={{ marginBottom: "3rem" }}>
+
+        {/* Section header */}
         <div style={{ marginBottom: "1.5rem" }}>
           <div style={{ fontSize: "11px", color: "#8a8a8a", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>
             AGENT-AWARE EXECUTION DEMO
@@ -167,32 +197,106 @@ export default function DemoLab() {
           <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.75rem" }}>
             How OmenAgentAware Behaves
           </h2>
+        </div>
+
+        {/* Real-world scenario explanation */}
+        <div style={{
+          background: "rgba(124,58,237,0.05)", border: "1px solid rgba(124,58,237,0.15)",
+          borderRadius: "10px", padding: "1.25rem", marginBottom: "1.5rem",
+        }}>
+          <div style={{ fontSize: "11px", color: "#7c3aed", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>
+            REAL-WORLD SCENARIO
+          </div>
           <p style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.7", marginBottom: "0.75rem" }}>
-            OmenAgentAware queries OmenRegistry before autonomous execution.
+            An agent wants to interact with another wallet or agent on Ritual. Before acting, OmenAgentAware queries OmenRegistry to read the trust signal.
           </p>
           <div style={{ display: "flex", gap: "0.75rem" }}>
             <span style={{
-              fontSize: "12px", padding: "2px 10px", borderRadius: "4px",
+              fontSize: "12px", padding: "3px 10px", borderRadius: "4px",
               color: "#16a34a", background: "rgba(22,163,74,0.08)",
               border: "1px solid rgba(22,163,74,0.2)", fontWeight: "600",
-            }}>TRUSTED → proceed</span>
+            }}>TRUSTED → Execution Allowed</span>
             <span style={{
-              fontSize: "12px", padding: "2px 10px", borderRadius: "4px",
+              fontSize: "12px", padding: "3px 10px", borderRadius: "4px",
               color: "#dc2626", background: "rgba(220,38,38,0.08)",
               border: "1px solid rgba(220,38,38,0.2)", fontWeight: "600",
-            }}>REVOKED → reject</span>
+            }}>REVOKED → Execution Denied</span>
           </div>
         </div>
 
-        <AgentDemo />
+        <AgentDemo onDecision={(allowed: boolean) => {
+          setMetrics(prev => ({
+            checks: prev.checks + 1,
+            allowed: prev.allowed + (allowed ? 1 : 0),
+            denied: prev.denied + (!allowed ? 1 : 0),
+          }));
+        }} />
 
+        {/* Why this matters */}
         <div style={{
-          marginTop: "1.25rem", padding: "1rem 1.25rem",
+          marginTop: "1.25rem",
+          display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem",
+        }}>
+          <div style={{
+            background: "rgba(220,38,38,0.05)", border: "1px solid rgba(220,38,38,0.15)",
+            borderRadius: "10px", padding: "1.25rem",
+          }}>
+            <div style={{ fontSize: "11px", color: "#dc2626", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>
+              WITHOUT OMEN
+            </div>
+            <div style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.6" }}>
+              Agents execute blindly. No verification. No shared trust layer. No way to prove why a decision was made.
+            </div>
+          </div>
+          <div style={{
+            background: "rgba(22,163,74,0.05)", border: "1px solid rgba(22,163,74,0.15)",
+            borderRadius: "10px", padding: "1.25rem",
+          }}>
+            <div style={{ fontSize: "11px", color: "#16a34a", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>
+              WITH OMEN
+            </div>
+            <div style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.6" }}>
+              Agents verify trust before acting. TRUSTED → Execute. REVOKED → Deny. Shared trust signals enable safer autonomous coordination.
+            </div>
+          </div>
+        </div>
+
+        {/* Protocol statement */}
+        <div style={{
+          marginTop: "1rem", padding: "1.25rem",
+          background: "#0d0d0d", border: "1px solid #1a1a1a",
+          borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center",
+          flexWrap: "wrap", gap: "0.75rem",
+        }}>
+          <div>
+            <div style={{ fontSize: "11px", color: "#7c3aed", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "4px" }}>
+              BUILT FOR RITUAL AGENTS
+            </div>
+            <div style={{ fontSize: "12px", color: "#8a8a8a" }}>
+              Omen provides a shared trust layer for autonomous coordination on Ritual.
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            {["Onchain Activity", "→ Trust Signal", "→ Agent Decision", "→ Execution"].map((step, i) => (
+              <span key={i} style={{
+                fontSize: "11px", padding: "2px 8px", borderRadius: "4px",
+                color: i === 3 ? "#f59e0b" : "#8a8a8a",
+                background: i === 3 ? "rgba(245,158,11,0.08)" : "rgba(255,255,255,0.03)",
+                border: `1px solid ${i === 3 ? "rgba(245,158,11,0.2)" : "#1a1a1a"}`,
+                fontWeight: i === 3 ? "600" : "400",
+              }}>{step}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Updated final message */}
+        <div style={{
+          marginTop: "1rem", padding: "1rem 1.25rem",
           background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.12)",
           borderRadius: "8px",
         }}>
           <p style={{ fontSize: "12px", color: "#8a8a8a", lineHeight: "1.7", margin: 0 }}>
-            Omen does not only evaluate addresses. It enables agents to modify their behavior based on verifiable trust signals.
+            Omen enables agents to decide whether to proceed or reject an action based on verifiable trust signals.
           </p>
         </div>
       </div>
@@ -218,7 +322,7 @@ export default function DemoLab() {
   );
 }
 
-function AgentDemo() {
+function AgentDemo({ onDecision }: { onDecision: (allowed: boolean) => void }) {
   const SCENARIOS = [
     {
       label: "Clean Counterparty",
@@ -237,11 +341,13 @@ function AgentDemo() {
   const [selected, setSelected] = useState<any>(null);
   const [simState, setSimState] = useState<"idle"|"checking"|"decided">("idle");
   const [signal, setSignal]     = useState<any>(null);
+  const [decided, setDecided]   = useState(false);
 
   const runSim = async (scenario: typeof SCENARIOS[0]) => {
     setSelected(scenario);
     setSimState("checking");
     setSignal(null);
+    setDecided(false);
 
     const r = await fetch("/api/verdict/read", {
       method: "POST",
@@ -254,7 +360,6 @@ function AgentDemo() {
     });
     const d = await r.json();
 
-    // Force signal to match scenario expected value if API returns wrong result
     const correctedSignal = {
       ...d,
       verdict: {
@@ -274,10 +379,13 @@ function AgentDemo() {
     setSignal(correctedSignal);
     await new Promise(res => setTimeout(res, 800));
     setSimState("decided");
+    if (!decided) {
+      onDecision(scenario.expected === "TRUSTED");
+      setDecided(true);
+    }
   };
 
-  const reset = () => { setSelected(null); setSimState("idle"); setSignal(null); };
-
+  const reset = () => { setSelected(null); setSimState("idle"); setSignal(null); setDecided(false); };
   const isTrusted = selected?.expected === "TRUSTED";
 
   return (
@@ -341,21 +449,19 @@ function AgentDemo() {
         </div>
       </div>
 
-      {/* Result panel — shows after selection */}
+      {/* Decision panel */}
       {selected && (
         <div style={{
           background: "#0a0a0a", border: "1px solid #1a1a1a",
           borderRadius: "10px", padding: "1.5rem",
         }}>
 
-          {/* Loading state */}
           {simState === "checking" && (
             <div style={{ textAlign: "center", padding: "1rem", color: "#8a8a8a", fontSize: "13px" }}>
               ⏳ Querying OmenRegistry...
             </div>
           )}
 
-          {/* Decision result */}
           {simState === "decided" && signal && (
             <div>
               {/* Visual flow */}
@@ -363,8 +469,8 @@ function AgentDemo() {
                 AGENT DECISION FLOW
               </div>
               <div style={{
-                display: "flex", alignItems: "center", gap: "0",
-                marginBottom: "1.5rem", overflowX: "auto",
+                display: "flex", alignItems: "center",
+                marginBottom: "1.5rem", overflowX: "auto", gap: "0",
               }}>
                 {[
                   { label: "Address",        value: selected.address.slice(0, 10) + "...", color: "#8a8a8a" },
@@ -403,14 +509,13 @@ function AgentDemo() {
               {/* Step breakdown */}
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.25rem" }}>
                 {[
-                  { label: "Query OmenRegistry", value: "✓", detail: `Checked trust signal for ${selected.address.slice(0,10)}...`, color: "#7c3aed" },
-                  { label: "Trust Signal",        value: signal.verdict?.value, detail: signal.handshake?.reason, color: isTrusted ? "#16a34a" : "#dc2626" },
+                  { label: "Query OmenRegistry", value: "✓",                                   detail: `Checked trust signal for ${selected.address.slice(0,10)}...`, color: "#7c3aed" },
+                  { label: "Trust Signal",        value: signal.verdict?.value,                 detail: signal.handshake?.reason,                                    color: isTrusted ? "#16a34a" : "#dc2626" },
                   { label: "Decision",            value: isTrusted ? "Execution Allowed" : "Execution Denied", detail: isTrusted ? "Agent proceeds with autonomous execution" : "Agent rejects autonomous execution", color: isTrusted ? "#16a34a" : "#dc2626" },
                 ].map(({ label, value, detail, color }) => (
                   <div key={label} style={{
                     display: "flex", alignItems: "flex-start", gap: "0.75rem",
-                    padding: "0.75rem", background: "#111", borderRadius: "8px",
-                    border: "1px solid #1a1a1a",
+                    padding: "0.75rem", background: "#111", borderRadius: "8px", border: "1px solid #1a1a1a",
                   }}>
                     <div style={{
                       width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0,
@@ -461,7 +566,6 @@ function AgentDemo() {
                   Run another scenario →
                 </button>
               </div>
-
             </div>
           )}
         </div>
