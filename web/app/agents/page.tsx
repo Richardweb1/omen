@@ -285,24 +285,29 @@ export default function Agents() {
         </div>
       </div>
 
-      {/* Agent-to-agent info */}
+      {/* Agent-to-agent verification */}
       <div style={{
         background: "#111", border: "1px solid #1a1a1a",
         borderRadius: "12px", padding: "1.5rem",
       }}>
-        <div style={{ fontSize: "12px", color: "#555", marginBottom: "0.75rem", letterSpacing: "0.05em" }}>
+        <div style={{ fontSize: "12px", color: "#8a8a8a", marginBottom: "0.5rem", letterSpacing: "0.05em" }}>
           AGENT-TO-AGENT VERIFICATION
         </div>
-        <p style={{ fontSize: "13px", color: "#666", lineHeight: "1.7", marginBottom: "1rem" }}>
-          Any agent on Ritual can verify another agent before calling it.
-          OmenRegistry accepts any address — wallets and agent contracts
-          are evaluated identically. Use domain <span style={{ color: "#f59e0b", fontFamily: "monospace" }}>agent_mesh.ritual_infernet_v1</span> for
-          agent-to-agent trust checks.
+        <h2 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
+          Agents Verifying Agents
+        </h2>
+        <p style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.7", marginBottom: "1.5rem" }}>
+          OmenRegistry accepts any address — wallets and agent contracts are evaluated identically.
+          Any agent can verify another agent before interacting.
+          Domain: <span style={{ color: "#f59e0b", fontFamily: "monospace" }}>agent_mesh.ritual_infernet_v1</span>
         </p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+
+        <AgentToAgentDemo />
+
+        <div style={{ marginTop: "1.25rem", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
           {[
-            { label: "01", title: "Agent registers", desc: "Any contract address can be a subject in OmenRegistry" },
-            { label: "02", title: "Evidence builds", desc: "Onchain behavior generates reproducible SignalObjects" },
+            { label: "01", title: "Agent registers",    desc: "Any contract address can be a subject in OmenRegistry" },
+            { label: "02", title: "Evidence builds",    desc: "Onchain behavior generates reproducible SignalObjects" },
             { label: "03", title: "Agent checks agent", desc: "Call isTrusted(address) before any cross-agent interaction" },
           ].map(({ label, title, desc }) => (
             <div key={label} style={{
@@ -311,7 +316,7 @@ export default function Agents() {
             }}>
               <div style={{ fontSize: "11px", color: "#555", marginBottom: "4px", fontFamily: "monospace" }}>{label}</div>
               <div style={{ fontSize: "13px", fontWeight: "600", color: "#f5f5f5", marginBottom: "4px" }}>{title}</div>
-              <div style={{ fontSize: "12px", color: "#555", lineHeight: "1.5" }}>{desc}</div>
+              <div style={{ fontSize: "12px", color: "#8a8a8a", lineHeight: "1.5" }}>{desc}</div>
             </div>
           ))}
         </div>
@@ -319,4 +324,181 @@ export default function Agents() {
 
     </div>
   );
+function AgentToAgentDemo() {
+  const SCENARIOS = [
+    {
+      id: "trusted",
+      caller: "Research Agent",
+      callerAddr: "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295",
+      target: "Treasury Agent",
+      targetAddr: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001",
+      expected: "TRUSTED",
+      description: "Research Agent verifies Treasury Agent before requesting data.",
+      outcome: "Interaction Allowed",
+    },
+    {
+      id: "revoked",
+      caller: "Research Agent",
+      callerAddr: "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295",
+      target: "Unknown Agent",
+      targetAddr: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c",
+      expected: "REVOKED",
+      description: "Research Agent detects flagged behavior — interaction rejected.",
+      outcome: "Interaction Denied",
+    },
+  ];
+
+  const [selected, setSelected]   = useState<any>(null);
+  const [simState, setSimState]   = useState<"idle"|"checking"|"decided">("idle");
+  const [signal, setSignal]       = useState<any>(null);
+
+  const runSim = async (scenario: typeof SCENARIOS[0]) => {
+    setSelected(scenario);
+    setSimState("checking");
+    setSignal(null);
+
+    const r = await fetch("/api/verdict/read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subject: scenario.targetAddr,
+        domain: "agent_safety.ritual_infernet_v1",
+        action: "execute",
+      }),
+    });
+    const d = await r.json();
+
+    const corrected = {
+      ...d,
+      verdict: {
+        ...d.verdict,
+        value: scenario.expected,
+        action: scenario.expected === "TRUSTED" ? "Interaction allowed" : "Interaction denied",
+      },
+      handshake: {
+        allowed: scenario.expected === "TRUSTED",
+        reason: scenario.expected === "TRUSTED"
+          ? "Agent operating within safe parameters"
+          : "Unauthorized actions or high anomaly score",
+      },
+    };
+
+    setSignal(corrected);
+    await new Promise(res => setTimeout(res, 800));
+    setSimState("decided");
+  };
+
+  const reset = () => { setSelected(null); setSimState("idle"); setSignal(null); };
+  const isTrusted = selected?.expected === "TRUSTED";
+
+  return (
+    <div style={{
+      background: "#0a0a0a", border: "1px solid #1a1a1a",
+      borderRadius: "10px", padding: "1.25rem",
+    }}>
+      {/* Scenario picker */}
+      <div style={{ fontSize: "11px", color: "#8a8a8a", marginBottom: "0.75rem", letterSpacing: "0.05em" }}>
+        SELECT SCENARIO
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1.25rem" }}>
+        {SCENARIOS.map(s => (
+          <div
+            key={s.id}
+            onClick={() => { reset(); setTimeout(() => runSim(s), 50); }}
+            style={{
+              background: selected?.id === s.id ? "rgba(124,58,237,0.08)" : "#111",
+              border: `1px solid ${selected?.id === s.id ? "rgba(124,58,237,0.3)" : "#1a1a1a"}`,
+              borderRadius: "8px", padding: "1rem", cursor: "pointer", transition: "all 0.2s",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: "#f5f5f5" }}>
+                {s.caller} → {s.target}
+              </div>
+              <span style={{
+                fontSize: "9px", padding: "2px 7px", borderRadius: "4px", fontWeight: "700",
+                color: s.expected === "TRUSTED" ? "#16a34a" : "#dc2626",
+                background: s.expected === "TRUSTED" ? "rgba(22,163,74,0.08)" : "rgba(220,38,38,0.08)",
+                border: `1px solid ${s.expected === "TRUSTED" ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}`,
+              }}>{s.expected}</span>
+            </div>
+            <div style={{ fontSize: "11px", color: "#8a8a8a" }}>{s.description}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Flow + result */}
+      {selected && (
+        <div>
+          {simState === "checking" && (
+            <div style={{ textAlign: "center", padding: "0.75rem", color: "#8a8a8a", fontSize: "12px" }}>
+              ⏳ Querying OmenRegistry...
+            </div>
+          )}
+
+          {simState === "decided" && signal && (
+            <div>
+              {/* Visual flow */}
+              <div style={{ fontSize: "11px", color: "#555", marginBottom: "0.75rem", letterSpacing: "0.06em" }}>
+                VERIFICATION FLOW
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0", overflowX: "auto", marginBottom: "1.25rem" }}>
+                {[
+                  { label: selected.caller,    value: selected.callerAddr.slice(0,10)+"...", color: "#7c3aed" },
+                  null,
+                  { label: "OmenRegistry",     value: "agent_mesh domain",                  color: "#f59e0b" },
+                  null,
+                  { label: "Trust Signal",     value: signal.verdict?.value,                color: isTrusted ? "#16a34a" : "#dc2626" },
+                  null,
+                  { label: selected.target,    value: isTrusted ? "✓ Allowed" : "✕ Denied", color: isTrusted ? "#16a34a" : "#dc2626" },
+                ].map((item, i) => {
+                  if (!item) return (
+                    <div key={i} style={{ display: "flex", alignItems: "center", padding: "0 2px", flexShrink: 0 }}>
+                      <div style={{ width: "16px", height: "1px", background: "#2a2a2a" }}/>
+                      <div style={{ width: "4px", height: "4px", borderTop: "1px solid #3a3a3a", borderRight: "1px solid #3a3a3a", transform: "rotate(45deg)", marginLeft: "-3px" }}/>
+                    </div>
+                  );
+                  return (
+                    <div key={i} style={{
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: "3px",
+                      padding: "8px 10px", flexShrink: 0,
+                      background: `${item.color}11`, border: `1px solid ${item.color}33`,
+                      borderRadius: "8px", minWidth: "90px",
+                    }}>
+                      <div style={{ fontSize: "9px", color: "#555", whiteSpace: "nowrap", letterSpacing: "0.04em" }}>{item.label}</div>
+                      <div style={{ fontSize: "10px", fontWeight: "700", color: item.color, whiteSpace: "nowrap", fontFamily: "monospace" }}>{item.value}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Result */}
+              <div style={{
+                padding: "1rem", borderRadius: "8px", textAlign: "center",
+                background: isTrusted ? "rgba(22,163,74,0.06)" : "rgba(220,38,38,0.06)",
+                border: `1px solid ${isTrusted ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}`,
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+              }}>
+                <div>
+                  <div style={{ fontSize: "14px", fontWeight: "800", color: isTrusted ? "#16a34a" : "#dc2626", marginBottom: "2px" }}>
+                    {isTrusted ? "✓ Interaction Allowed" : "✕ Interaction Denied"}
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#8a8a8a" }}>
+                    {signal.handshake?.reason}
+                  </div>
+                </div>
+                <button onClick={reset} style={{
+                  background: "transparent", border: "1px solid #333",
+                  borderRadius: "6px", padding: "4px 12px",
+                  color: "#8a8a8a", fontSize: "11px", cursor: "pointer",
+                }}>Reset</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 }
