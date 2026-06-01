@@ -66,16 +66,12 @@ export default function DemoLab() {
           <h1 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>Demo Lab</h1>
           <p style={{ color: "#b0b0b0", fontSize: "14px" }}>Run live trust evaluation on pinned benchmark subjects</p>
         </div>
-        <button
-          onClick={runAllHandshakes}
-          disabled={runAll}
-          style={{
-            background: "linear-gradient(135deg, #f59e0b, #d97706)",
-            color: "#0a0a0a", padding: "10px 20px",
-            borderRadius: "8px", fontWeight: "600",
-            fontSize: "14px", border: "none", cursor: "pointer",
-          }}
-        >
+        <button onClick={runAllHandshakes} disabled={runAll} style={{
+          background: "linear-gradient(135deg, #f59e0b, #d97706)",
+          color: "#0a0a0a", padding: "10px 20px",
+          borderRadius: "8px", fontWeight: "600",
+          fontSize: "14px", border: "none", cursor: "pointer",
+        }}>
           {runAll ? "Running..." : "Run All →"}
         </button>
       </div>
@@ -124,34 +120,28 @@ export default function DemoLab() {
                       border: `1px solid ${style?.border}`, fontWeight: "600",
                     }}>{vs || subject.expected}</span>
                   </div>
-                  <div style={{ fontSize: "11px", color: "#555", fontFamily: "monospace", marginBottom: "4px" }}>
-                    {subject.address}
-                  </div>
+                  <div style={{ fontSize: "11px", color: "#555", fontFamily: "monospace", marginBottom: "4px" }}>{subject.address}</div>
                   <div style={{ fontSize: "11px", color: "#444" }}>{subject.domain}</div>
                 </div>
                 <button
                   onClick={() => { setResults((prev: any) => { const n = {...prev}; delete n[subject.address]; return n; }); runHandshake(subject); }}
                   disabled={isLoading}
                   style={{
-                    background: "rgba(124,58,237,0.15)",
-                    border: "1px solid rgba(124,58,237,0.3)",
-                    color: "#7c3aed", padding: "6px 14px",
-                    borderRadius: "6px", fontSize: "12px",
-                    fontWeight: "500", cursor: "pointer",
-                    opacity: isLoading ? 0.5 : 1,
+                    background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.3)",
+                    color: "#7c3aed", padding: "6px 14px", borderRadius: "6px",
+                    fontSize: "12px", fontWeight: "500", cursor: "pointer", opacity: isLoading ? 0.5 : 1,
                   }}
                 >
                   {isLoading ? "Running..." : result ? "Re-run" : "Run Handshake →"}
                 </button>
               </div>
-
               {result && !result.error && (
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.5rem" }}>
                   {[
-                    { label: "Signal",    value: vs,                                                 color: style?.color },
-                    { label: "Action",    value: actionLabel,                                        color: "#f5f5f5" },
-                    { label: "Handshake", value: result.handshake?.allowed ? "ALLOWED" : "DENIED",   color: result.handshake?.allowed ? "#16a34a" : "#dc2626" },
-                    { label: "Latency",   value: `${result.latency}ms`,                              color: "#7c3aed" },
+                    { label: "Signal",    value: vs,                                                color: style?.color },
+                    { label: "Action",    value: actionLabel,                                       color: "#f5f5f5" },
+                    { label: "Handshake", value: result.handshake?.allowed ? "ALLOWED" : "DENIED",  color: result.handshake?.allowed ? "#16a34a" : "#dc2626" },
+                    { label: "Latency",   value: `${result.latency}ms`,                             color: "#7c3aed" },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{
                       background: "#0a0a0a", border: "1px solid #1a1a1a",
@@ -177,10 +167,10 @@ export default function DemoLab() {
           <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.75rem" }}>
             How OmenAgentAware Behaves
           </h2>
-          <p style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.7" }}>
+          <p style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.7", marginBottom: "0.75rem" }}>
             OmenAgentAware queries OmenRegistry before autonomous execution.
           </p>
-          <div style={{ display: "flex", gap: "1rem", marginTop: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "0.75rem" }}>
             <span style={{
               fontSize: "12px", padding: "2px 10px", borderRadius: "4px",
               color: "#16a34a", background: "rgba(22,163,74,0.08)",
@@ -193,26 +183,22 @@ export default function DemoLab() {
             }}>REVOKED → reject</span>
           </div>
         </div>
+
         <AgentDemo />
 
-        {/* Protocol statement */}
         <div style={{
           marginTop: "1.25rem", padding: "1rem 1.25rem",
           background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.12)",
           borderRadius: "8px",
         }}>
           <p style={{ fontSize: "12px", color: "#8a8a8a", lineHeight: "1.7", margin: 0 }}>
-            Omen does not only evaluate addresses.
-            It enables agents to modify their behavior based on verifiable trust signals.
+            Omen does not only evaluate addresses. It enables agents to modify their behavior based on verifiable trust signals.
           </p>
         </div>
       </div>
 
       {/* Contract addresses */}
-      <div style={{
-        padding: "1rem", background: "#111",
-        border: "1px solid #1a1a1a", borderRadius: "10px",
-      }}>
+      <div style={{ padding: "1rem", background: "#111", border: "1px solid #1a1a1a", borderRadius: "10px" }}>
         <div style={{ fontSize: "11px", color: "#555", marginBottom: "0.5rem", letterSpacing: "0.05em" }}>LIVE CONTRACTS</div>
         <div style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
           {[
@@ -249,7 +235,7 @@ function AgentDemo() {
   ];
 
   const [selected, setSelected] = useState<any>(null);
-  const [simState, setSimState] = useState<"idle"|"checking"|"executing"|"rejected"|"executed">("idle");
+  const [simState, setSimState] = useState<"idle"|"checking"|"decided">("idle");
   const [signal, setSignal]     = useState<any>(null);
 
   const runSim = async (scenario: typeof SCENARIOS[0]) => {
@@ -268,18 +254,13 @@ function AgentDemo() {
     });
     const d = await r.json();
     setSignal(d);
-    await new Promise(res => setTimeout(res, 1000));
-
-    if (d.verdict?.value === "TRUSTED") {
-      setSimState("executing");
-      await new Promise(res => setTimeout(res, 1200));
-      setSimState("executed");
-    } else {
-      setSimState("rejected");
-    }
+    await new Promise(res => setTimeout(res, 800));
+    setSimState("decided");
   };
 
   const reset = () => { setSelected(null); setSimState("idle"); setSignal(null); };
+
+  const isTrusted = signal?.verdict?.value === "TRUSTED";
 
   return (
     <div style={{
@@ -288,23 +269,20 @@ function AgentDemo() {
     }}>
 
       {/* Agent badge */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem" }}>
         <div style={{
           width: "32px", height: "32px", borderRadius: "8px",
-          background: "rgba(124,58,237,0.15)",
-          border: "1px solid rgba(124,58,237,0.3)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: "14px",
+          background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.3)",
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px",
         }}>⬡</div>
         <div>
           <div style={{ fontSize: "13px", fontWeight: "600", color: "#f5f5f5" }}>OmenAgentAware</div>
-          <div style={{
-            display: "inline-block", fontSize: "9px", padding: "1px 7px",
-            borderRadius: "4px", marginTop: "2px",
+          <span style={{
+            fontSize: "9px", padding: "1px 7px", borderRadius: "4px",
             color: "#7c3aed", background: "rgba(124,58,237,0.1)",
             border: "1px solid rgba(124,58,237,0.2)",
             fontWeight: "700", letterSpacing: "0.06em",
-          }}>TRUST-AWARE AGENT</div>
+          }}>TRUST-AWARE AGENT</span>
         </div>
         <div style={{ marginLeft: "auto", fontSize: "11px", color: "#444", fontFamily: "monospace" }}>
           0x5690BafF...0a295
@@ -312,7 +290,7 @@ function AgentDemo() {
       </div>
 
       {/* Scenario picker */}
-      <div style={{ marginBottom: "1.25rem" }}>
+      <div style={{ marginBottom: "1.5rem" }}>
         <div style={{ fontSize: "11px", color: "#8a8a8a", marginBottom: "0.75rem", letterSpacing: "0.05em" }}>
           SELECT SCENARIO
         </div>
@@ -320,12 +298,11 @@ function AgentDemo() {
           {SCENARIOS.map(s => (
             <div
               key={s.address}
-              onClick={() => { reset(); setTimeout(() => runSim(s), 100); }}
+              onClick={() => { reset(); setTimeout(() => runSim(s), 50); }}
               style={{
                 background: selected?.address === s.address ? "rgba(124,58,237,0.08)" : "#0a0a0a",
                 border: `1px solid ${selected?.address === s.address ? "rgba(124,58,237,0.3)" : "#222"}`,
-                borderRadius: "8px", padding: "1rem", cursor: "pointer",
-                transition: "all 0.2s",
+                borderRadius: "8px", padding: "1rem", cursor: "pointer", transition: "all 0.2s",
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
@@ -346,151 +323,127 @@ function AgentDemo() {
         </div>
       </div>
 
-      {/* Decision flow */}
+      {/* Result panel — shows after selection */}
       {selected && (
         <div style={{
           background: "#0a0a0a", border: "1px solid #1a1a1a",
-          borderRadius: "10px", padding: "1.25rem",
+          borderRadius: "10px", padding: "1.5rem",
         }}>
-          <div style={{ fontSize: "11px", color: "#8a8a8a", marginBottom: "1.25rem", letterSpacing: "0.05em" }}>
-            AGENT EXECUTION FLOW
-          </div>
 
-          {/* Visual pipeline */}
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "center",
-            gap: "0", marginBottom: "1.5rem", flexWrap: "nowrap", overflowX: "auto",
-          }}>
-            {[
-              { label: "Address", sub: selected.address.slice(0, 10) + "...", color: "#8a8a8a", done: true },
-              null,
-              { label: "OmenRegistry", sub: "query trust", color: "#7c3aed", done: ["executing","rejected","executed"].includes(simState) },
-              null,
-              { label: "Trust Signal", sub: signal ? signal.verdict?.value : "...", color: signal?.verdict?.value === "TRUSTED" ? "#16a34a" : signal ? "#dc2626" : "#8a8a8a", done: ["executing","rejected","executed"].includes(simState) },
-              null,
-              {
-                label: simState === "executed" ? "Execution Allowed" : simState === "rejected" ? "Execution Denied" : "Decision",
-                sub: simState === "executed" ? "agent proceeds" : simState === "rejected" ? "agent rejects" : "pending...",
-                color: simState === "executed" ? "#16a34a" : simState === "rejected" ? "#dc2626" : "#8a8a8a",
-                done: ["executed","rejected"].includes(simState),
-              },
-            ].map((item, i) => {
-              if (!item) return (
-                <div key={i} style={{ display: "flex", alignItems: "center", padding: "0 2px" }}>
-                  <div style={{ width: "24px", height: "1px", background: "#2a2a2a" }}/>
-                  <div style={{
-                    width: "4px", height: "4px",
-                    borderTop: "1px solid #3a3a3a",
-                    borderRight: "1px solid #3a3a3a",
-                    transform: "rotate(45deg)", marginLeft: "-3px",
-                  }}/>
-                </div>
-              );
-              return (
-                <div key={i} style={{
-                  display: "flex", flexDirection: "column", alignItems: "center", gap: "4px",
-                  padding: "8px 12px",
-                  background: item.done ? `${item.color}11` : "rgba(255,255,255,0.02)",
-                  border: `1px solid ${item.done ? item.color + "33" : "#1a1a1a"}`,
-                  borderRadius: "8px", minWidth: "90px", transition: "all 0.3s",
-                }}>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: item.done ? item.color : "#cfcfcf", whiteSpace: "nowrap" }}>{item.label}</div>
-                  <div style={{ fontSize: "9px", color: item.done ? item.color : "#555", whiteSpace: "nowrap", fontFamily: "monospace" }}>{item.sub}</div>
-                </div>
-              );
-            })}
-          </div>
+          {/* Loading state */}
+          {simState === "checking" && (
+            <div style={{ textAlign: "center", padding: "1rem", color: "#8a8a8a", fontSize: "13px" }}>
+              ⏳ Querying OmenRegistry...
+            </div>
+          )}
 
-          {/* Step list */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {[
-              {
-                id: "check",
-                label: "1. Query OmenRegistry",
-                detail: `Checking trust signal for ${selected.address.slice(0, 10)}...`,
-                active: simState === "checking",
-                done: ["executing","rejected","executed"].includes(simState),
-                color: "#7c3aed",
-              },
-              {
-                id: "signal",
-                label: "2. Read Trust Signal",
-                detail: signal ? `Signal: ${signal.verdict?.value} — ${signal.handshake?.reason}` : "Awaiting...",
-                active: simState === "executing" || simState === "rejected",
-                done: ["executed","rejected"].includes(simState),
-                color: signal?.verdict?.value === "TRUSTED" ? "#16a34a" : "#dc2626",
-              },
-              {
-                id: "decision",
-                label: simState === "rejected" ? "3. Execution Denied" : "3. Execution Allowed",
-                detail: simState === "executed"
-                  ? "✓ Action authorized — OmenAgentAware proceeds"
-                  : simState === "rejected"
-                  ? "✗ Execution blocked — trust signal is REVOKED"
-                  : "Awaiting trust signal...",
-                active: simState === "executing",
-                done: ["executed","rejected"].includes(simState),
-                color: simState === "executed" ? "#16a34a" : simState === "rejected" ? "#dc2626" : "#8a8a8a",
-              },
-            ].map(({ id, label, detail, active, done, color }) => (
-              <div key={id} style={{
-                display: "flex", alignItems: "flex-start", gap: "0.75rem",
-                padding: "0.75rem", borderRadius: "8px",
-                background: active ? "rgba(124,58,237,0.05)" : "transparent",
-                border: `1px solid ${active ? "rgba(124,58,237,0.15)" : "transparent"}`,
-                transition: "all 0.3s",
+          {/* Decision result */}
+          {simState === "decided" && signal && (
+            <div>
+              {/* Visual flow */}
+              <div style={{ fontSize: "11px", color: "#555", marginBottom: "1.25rem", letterSpacing: "0.06em" }}>
+                AGENT DECISION FLOW
+              </div>
+              <div style={{
+                display: "flex", alignItems: "center", gap: "0",
+                marginBottom: "1.5rem", overflowX: "auto",
               }}>
-                <div style={{
-                  width: "20px", height: "20px", borderRadius: "50%", flexShrink: 0,
-                  background: done ? `${color}22` : active ? "rgba(124,58,237,0.15)" : "#1a1a1a",
-                  border: `1px solid ${done ? color : active ? "rgba(124,58,237,0.4)" : "#333"}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "9px", fontWeight: "700",
-                  color: done ? color : active ? "#7c3aed" : "#555",
-                }}>
-                  {done ? "✓" : active ? "●" : "○"}
-                </div>
-                <div>
-                  <div style={{ fontSize: "12px", fontWeight: "600", color: done ? color : "#cfcfcf", marginBottom: "2px" }}>
-                    {label}
-                  </div>
-                  <div style={{ fontSize: "11px", color: "#8a8a8a" }}>{detail}</div>
-                </div>
+                {[
+                  { label: "Address",        value: selected.address.slice(0, 10) + "...", color: "#8a8a8a" },
+                  null,
+                  { label: "OmenRegistry",   value: "queried ✓",                          color: "#7c3aed" },
+                  null,
+                  { label: "Trust Signal",   value: signal.verdict?.value,                color: isTrusted ? "#16a34a" : "#dc2626" },
+                  null,
+                  { label: "Agent Decision", value: isTrusted ? "EXECUTE ✓" : "DENY ✕",  color: isTrusted ? "#16a34a" : "#dc2626" },
+                ].map((item, i) => {
+                  if (!item) return (
+                    <div key={i} style={{ display: "flex", alignItems: "center", padding: "0 2px", flexShrink: 0 }}>
+                      <div style={{ width: "20px", height: "1px", background: "#2a2a2a" }}/>
+                      <div style={{
+                        width: "4px", height: "4px",
+                        borderTop: "1px solid #3a3a3a", borderRight: "1px solid #3a3a3a",
+                        transform: "rotate(45deg)", marginLeft: "-3px",
+                      }}/>
+                    </div>
+                  );
+                  return (
+                    <div key={i} style={{
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: "3px",
+                      padding: "8px 10px", flexShrink: 0,
+                      background: `${item.color}11`,
+                      border: `1px solid ${item.color}33`,
+                      borderRadius: "8px", minWidth: "80px",
+                    }}>
+                      <div style={{ fontSize: "9px", color: "#555", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{item.label}</div>
+                      <div style={{ fontSize: "11px", fontWeight: "700", color: item.color, whiteSpace: "nowrap", fontFamily: item.label === "Address" ? "monospace" : "inherit" }}>{item.value}</div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
 
-          {/* Final result */}
-          {(simState === "executed" || simState === "rejected") && (
-            <div style={{
-              marginTop: "1rem", padding: "0.75rem 1rem", borderRadius: "8px",
-              background: simState === "executed" ? "rgba(22,163,74,0.08)" : "rgba(220,38,38,0.08)",
-              border: `1px solid ${simState === "executed" ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}`,
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-            }}>
-              <div>
-                <div style={{
-                  fontSize: "13px", fontWeight: "700", marginBottom: "2px",
-                  color: simState === "executed" ? "#16a34a" : "#dc2626",
-                }}>
-                  {simState === "executed" ? "✓ Execution Allowed" : "✗ Execution Denied"}
-                </div>
-                <div style={{ fontSize: "11px", color: "#8a8a8a" }}>
-                  {simState === "executed"
-                    ? "OmenAgentAware confirmed TRUSTED signal — action authorized"
-                    : "OmenAgentAware detected REVOKED signal — execution blocked"}
-                </div>
+              {/* Step breakdown */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1.25rem" }}>
+                {[
+                  { label: "Query OmenRegistry", value: "✓", detail: `Checked trust signal for ${selected.address.slice(0,10)}...`, color: "#7c3aed" },
+                  { label: "Trust Signal",        value: signal.verdict?.value, detail: signal.handshake?.reason, color: isTrusted ? "#16a34a" : "#dc2626" },
+                  { label: "Decision",            value: isTrusted ? "Execution Allowed" : "Execution Denied", detail: isTrusted ? "Agent proceeds with autonomous execution" : "Agent rejects autonomous execution", color: isTrusted ? "#16a34a" : "#dc2626" },
+                ].map(({ label, value, detail, color }) => (
+                  <div key={label} style={{
+                    display: "flex", alignItems: "flex-start", gap: "0.75rem",
+                    padding: "0.75rem", background: "#111", borderRadius: "8px",
+                    border: "1px solid #1a1a1a",
+                  }}>
+                    <div style={{
+                      width: "18px", height: "18px", borderRadius: "50%", flexShrink: 0,
+                      background: `${color}22`, border: `1px solid ${color}`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: "8px", fontWeight: "700", color,
+                    }}>✓</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ fontSize: "12px", fontWeight: "600", color: "#cfcfcf" }}>{label}</div>
+                        <span style={{
+                          fontSize: "11px", fontWeight: "700", color,
+                          padding: "1px 8px", borderRadius: "4px",
+                          background: `${color}11`, border: `1px solid ${color}33`,
+                        }}>{value}</span>
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#8a8a8a", marginTop: "2px" }}>{detail}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <button
-                onClick={reset}
-                style={{
+
+              {/* Hero decision */}
+              <div style={{
+                padding: "1.5rem", borderRadius: "10px", textAlign: "center",
+                background: isTrusted ? "rgba(22,163,74,0.06)" : "rgba(220,38,38,0.06)",
+                border: `1px solid ${isTrusted ? "rgba(22,163,74,0.25)" : "rgba(220,38,38,0.25)"}`,
+              }}>
+                <div style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.12em", color: "#8a8a8a", marginBottom: "0.5rem" }}>
+                  AGENT DECISION
+                </div>
+                <div style={{
+                  fontSize: "2rem", fontWeight: "800", letterSpacing: "-0.02em",
+                  color: isTrusted ? "#16a34a" : "#dc2626", marginBottom: "0.5rem",
+                }}>
+                  {isTrusted ? "EXECUTE ACTION ✓" : "DENY EXECUTION ✕"}
+                </div>
+                <div style={{ fontSize: "13px", color: "#8a8a8a", marginBottom: "1.25rem" }}>
+                  {isTrusted
+                    ? "Result: Agent proceeds with autonomous execution."
+                    : "Result: Agent rejects autonomous execution."}
+                </div>
+                <button onClick={reset} style={{
                   background: "transparent", border: "1px solid #333",
-                  borderRadius: "6px", padding: "4px 12px",
-                  color: "#8a8a8a", fontSize: "11px", cursor: "pointer",
-                }}
-              >
-                Reset
-              </button>
+                  borderRadius: "6px", padding: "6px 16px",
+                  color: "#8a8a8a", fontSize: "12px", cursor: "pointer",
+                }}>
+                  Run another scenario →
+                </button>
+              </div>
+
             </div>
           )}
         </div>
