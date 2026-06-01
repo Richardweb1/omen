@@ -210,7 +210,7 @@ export default function Builder() {
     <div style={{ maxWidth: "800px", margin: "0 auto", padding: "3rem 2rem" }}>
       <div style={{ marginBottom: "2.5rem" }}>
         <h1 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
-          Trust Signal Builder
+          Verifiable Trust Signal Builder
         </h1>
         <p style={{ color: "#b0b0b0", fontSize: "14px" }}>
           Build reproducible evidence and generate a verifiable trust signal on Ritual chain
@@ -312,6 +312,23 @@ export default function Builder() {
         </StepCard>
 
         <StepCard num="3" title="Generate Trust Signal on Ritual" active={step === 2} done={step > 2} onRun={step3} loading={loading && step === 2} disabled={step < 2}>
+          {step === 2 && txStatus === "idle" && (
+            <div style={{
+              background: "rgba(124,58,237,0.06)", border: "1px solid rgba(124,58,237,0.2)",
+              borderRadius: "8px", padding: "14px 16px",
+              marginBottom: "0.75rem",
+            }}>
+              <div style={{
+                fontSize: "11px", fontWeight: "700", color: "#7c3aed",
+                letterSpacing: "0.08em", marginBottom: "6px",
+              }}>
+                WALLET-SIGNED TRANSACTIONS
+              </div>
+              <div style={{ fontSize: "12px", color: "#b0b0b0", lineHeight: "1.7" }}>
+                You will sign two transactions from your connected wallet. Omen never uses a backend wallet to pay gas. All onchain actions are authorized and paid for by the connected user.
+              </div>
+            </div>
+          )}
           {txStatus !== "idle" && txStatus !== "error" && (
             <div style={{
               background: "rgba(124,58,237,0.08)", border: "1px solid rgba(124,58,237,0.2)",
@@ -344,6 +361,21 @@ export default function Builder() {
                       tx2 evaluateDeterministic: {tx2Hash.slice(0, 20)}... ↗
                     </a>
                   )}
+                  <div style={{
+                    marginTop: "0.75rem", display: "flex", gap: "0.5rem", flexWrap: "wrap",
+                  }}>
+                    {[
+                      { label: "✓ Signed by connected wallet", color: "#16a34a" },
+                      { label: "✓ Gas paid by user",           color: "#16a34a" },
+                      { label: "✓ Written on Ritual Chain",    color: "#7c3aed" },
+                    ].map(({ label, color }) => (
+                      <span key={label} style={{
+                        fontSize: "10px", padding: "2px 8px", borderRadius: "4px",
+                        color, border: `1px solid ${color}33`,
+                        background: `${color}11`, fontWeight: "500",
+                      }}>{label}</span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
