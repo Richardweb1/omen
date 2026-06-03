@@ -5,7 +5,7 @@ import WalletProvider from "@/components/WalletProvider";
 
 export const metadata: Metadata = {
   title: "Omen — Trust Infrastructure for Autonomous Coordination",
-  description: "Signs read from evidence. Verdicts that persist. Agents that act on what they know.",
+  description: "Verifiable trust signals for agents, wallets, and autonomous systems on Ritual Chain.",
 };
 
 export default function RootLayout({
