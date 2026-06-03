@@ -4,7 +4,7 @@ import Nav from "@/components/Nav";
 import WalletProvider from "@/components/WalletProvider";
 
 export const metadata: Metadata = {
-  title: "Omen — Attested AI Judgment on Ritual",
+  title: "Omen — Trust Infrastructure for Autonomous Coordination",
   description: "Signs read from evidence. Verdicts that persist. Agents that act on what they know.",
 };
 

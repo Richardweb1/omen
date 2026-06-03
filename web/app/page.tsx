@@ -114,7 +114,7 @@ export default function Home() {
             }}>
               Run Trust Check →
             </Link>
-            <a href="#architecture" className="btn-secondary" style={{
+            <a href="/architecture" className="btn-secondary" style={{
               background: "transparent", color: "#cfcfcf",
               padding: "13px 32px", borderRadius: "8px",
               fontWeight: "500", fontSize: "14px",
@@ -328,7 +328,7 @@ export default function Home() {
               Built for agents, applications, and autonomous systems operating on Ritual.
             </p>
             <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-              <Link href="/builder" className="btn-primary" style={{
+              <Link href="/demo" className="btn-primary" style={{
                 background: "linear-gradient(135deg, #f59e0b, #d97706)",
                 color: "#0a0a0a", padding: "12px 28px",
                 borderRadius: "8px", fontWeight: "700",
