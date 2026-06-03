@@ -11,42 +11,13 @@ const VSTYLE: any = {
   LAPSED:   { color: "#7c3aed", bg: "rgba(124,58,237,0.1)",  border: "rgba(124,58,237,0.3)"  },
 };
 
-const KNOWN_AGENTS = [
-  {
-    address: "0x3260dDe013d8c5130092B3DFB7d44DdD995da528",
-    label: "OmenSovereignAgent",
-    type: "Sovereign Agent",
-    schedule: "2218803",
-    domain: "agent_safety.ritual_infernet_v1",
-    description: "Wakes every 500 blocks. Watches 2 subjects autonomously.",
-  },
-  {
-    address: "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295",
-    label: "OmenAgentAware",
-    type: "Agent Contract",
-    schedule: null,
-    domain: "agent_safety.ritual_infernet_v1",
-    description: "Checks OmenRegistry before acting. Trust-aware execution.",
-  },
-  {
-    address: "0x7040235955B2D397d7CB717a300911Ec68644aFe",
-    label: "OmenAgentDirect",
-    type: "Agent Contract",
-    schedule: null,
-    domain: "counterparty_trust.ritual_trade_v1",
-    description: "Direct execution without trust check. Baseline comparison.",
-  },
-];
-
 export default function Agents() {
-  const [subject, setSubject]   = useState("");
-  const [domain, setDomain]     = useState("agent_safety.ritual_infernet_v1");
-  const [result, setResult]     = useState<any>(null);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
-  const [blockNum, setBlockNum] = useState<number | null>(null);
+  const [blockNum, setBlockNum]     = useState<number | null>(null);
+  const [result, setResult]         = useState<any>(null);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState("");
+  const [checkedAddr, setCheckedAddr] = useState("");
 
-  // fetch current block for agent heartbeat
   useEffect(() => {
     fetch(`${API}/block`)
       .then(r => r.json())
@@ -54,121 +25,74 @@ export default function Agents() {
       .catch(() => null);
   }, []);
 
-  const lookup = async (addr?: string) => {
-    const s = addr || subject;
-    if (!s) return setError("Enter an agent or wallet address");
-    setLoading(true); setError(""); setResult(null);
+  const checkTrust = async (addr: string, domain: string) => {
+    setLoading(true); setError(""); setResult(null); setCheckedAddr(addr);
     window.scrollTo({ top: 0, behavior: "smooth" });
     try {
       const r = await fetch(`${API}/verdict/read`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject: s, domain, action: "execute" }),
+        body: JSON.stringify({ subject: addr, domain, action: "execute" }),
       });
       const d = await r.json();
       if (d.error) throw new Error(d.error);
       setResult(d);
-      if (addr) setSubject(addr);
     } catch (e: any) { setError(e.message); }
     setLoading(false);
   };
 
   const vs = result?.verdict?.value;
-  const style = vs ? VSTYLE[vs] || VSTYLE.UNSEEN : null;
+  const vstyle = vs ? VSTYLE[vs] || VSTYLE.UNSEEN : null;
 
   return (
     <div style={{ maxWidth: "900px", margin: "0 auto", padding: "3rem 2rem" }}>
 
       {/* Header */}
       <div style={{ marginBottom: "2.5rem" }}>
-        <h1 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
+        <div style={{ fontSize: "11px", color: "#8a8a8a", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>
+          RITUAL AGENT INFRASTRUCTURE
+        </div>
+        <h1 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.75rem" }}>
           Agent & Trust Monitor
         </h1>
-        <p style={{ color: "#666", fontSize: "14px" }}>
-          Read trust signals for any agent or wallet. All addresses use the same OmenRegistry —
-          agents and wallets are evaluated identically.
-        </p>
+        {/* Visual flow */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0", flexWrap: "nowrap", overflowX: "auto" }}>
+          {[
+            { label: "Onchain Activity", color: "#8a8a8a" },
+            null,
+            { label: "GLM-4.7-FP8 (TEE)", color: "#7c3aed" },
+            null,
+            { label: "Trust Signal", color: "#f59e0b" },
+            null,
+            { label: "Agent Decision", color: "#7c3aed" },
+            null,
+            { label: "Execute / Deny", color: "#16a34a" },
+          ].map((item, i) => {
+            if (!item) return (
+              <div key={i} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                <div style={{ width: "16px", height: "1px", background: "#2a2a2a" }}/>
+                <div style={{ width: "4px", height: "4px", borderTop: "1px solid #3a3a3a", borderRight: "1px solid #3a3a3a", transform: "rotate(45deg)", marginLeft: "-3px" }}/>
+              </div>
+            );
+            return (
+              <div key={i} style={{ padding: "5px 10px", borderRadius: "6px", background: `${item.color}11`, border: `1px solid ${item.color}33`, fontSize: "11px", fontWeight: "600", color: item.color, whiteSpace: "nowrap", flexShrink: 0 }}>
+                {item.label}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Lookup */}
-      <div style={{
-        background: "#111", border: "1px solid #1a1a1a",
-        borderRadius: "12px", padding: "1.5rem", marginBottom: "2rem",
-      }}>
-        <div style={{ fontSize: "12px", color: "#555", marginBottom: "1rem", letterSpacing: "0.05em" }}>
-          TRUST SIGNAL LOOKUP
-        </div>
-        <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1rem" }}>
-          <input
-            value={subject}
-            onChange={e => setSubject(e.target.value)}
-            placeholder="0x... agent contract or wallet address"
-            style={{
-              flex: 1, background: "#0a0a0a",
-              border: "1px solid #222", borderRadius: "8px",
-              padding: "10px 14px", color: "#f5f5f5",
-              fontSize: "14px", fontFamily: "monospace", outline: "none",
-            }}
-          />
-          <button
-            onClick={() => lookup()}
-            disabled={loading}
-            style={{
-              background: "linear-gradient(135deg, #f59e0b, #d97706)",
-              color: "#0a0a0a", padding: "10px 20px",
-              borderRadius: "8px", fontWeight: "600",
-              fontSize: "14px", border: "none", cursor: "pointer",
-            }}
-          >
-            {loading ? "..." : "Read Signal →"}
-          </button>
-        </div>
-        <select
-          value={domain}
-          onChange={e => setDomain(e.target.value)}
-          style={{
-            width: "100%", background: "#0a0a0a",
-            border: "1px solid #222", borderRadius: "8px",
-            padding: "10px 14px", color: "#f5f5f5",
-            fontSize: "13px", outline: "none",
-          }}
-        >
-          <option value="agent_safety.ritual_infernet_v1">Agent Safety — execute</option>
-          <option value="counterparty_trust.ritual_trade_v1">Counterparty Trust — trade</option>
-          <option value="agent_mesh.ritual_infernet_v1">Agent Mesh — agent-to-agent</option>
-        </select>
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div style={{
-          background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.3)",
-          borderRadius: "8px", padding: "10px 14px",
-          color: "#dc2626", fontSize: "13px", marginBottom: "1rem",
-        }}>{error}</div>
-      )}
-
-      {/* Result */}
+      {/* Trust result */}
+      {error && <div style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.3)", borderRadius: "8px", padding: "10px 14px", color: "#dc2626", fontSize: "13px", marginBottom: "1rem" }}>{error}</div>}
       {result && (
-        <div style={{
-          background: "#111", border: `1px solid ${style?.border}`,
-          borderRadius: "12px", padding: "1.5rem", marginBottom: "2rem",
-        }}>
+        <div style={{ background: "#111", border: `1px solid ${vstyle?.border}`, borderRadius: "12px", padding: "1.5rem", marginBottom: "2rem" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
             <div>
-              <div style={{ fontSize: "11px", color: "#555", fontFamily: "monospace", marginBottom: "4px" }}>
-                {result.subject}
-              </div>
+              <div style={{ fontSize: "11px", color: "#555", fontFamily: "monospace", marginBottom: "4px" }}>{checkedAddr}</div>
               <div style={{ fontSize: "11px", color: "#444" }}>{result.domain}</div>
             </div>
-            <div style={{
-              padding: "6px 16px", borderRadius: "6px",
-              fontSize: "14px", fontWeight: "700",
-              color: style?.color, background: style?.bg,
-              border: `1px solid ${style?.border}`,
-            }}>
-              {result.verdict?.value}
-            </div>
+            <div style={{ padding: "6px 16px", borderRadius: "6px", fontSize: "14px", fontWeight: "700", color: vstyle?.color, background: vstyle?.bg, border: `1px solid ${vstyle?.border}` }}>{result.verdict?.value}</div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
             {[
@@ -176,10 +100,7 @@ export default function Agents() {
               { label: "Fresh",     value: result.verdict?.isFresh ? "Yes" : "No" },
               { label: "Handshake", value: result.handshake?.allowed ? "ALLOWED" : "DENIED" },
             ].map(({ label, value }) => (
-              <div key={label} style={{
-                background: "#0a0a0a", border: "1px solid #1a1a1a",
-                borderRadius: "8px", padding: "0.75rem", textAlign: "center",
-              }}>
+              <div key={label} style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "8px", padding: "0.75rem", textAlign: "center" }}>
                 <div style={{ fontSize: "11px", color: "#555", marginBottom: "2px" }}>{label}</div>
                 <div style={{ fontSize: "13px", fontWeight: "600", color: "#f5f5f5" }}>{value}</div>
               </div>
@@ -188,203 +109,183 @@ export default function Agents() {
         </div>
       )}
 
-      {/* Known Agents */}
-      <div style={{ marginBottom: "2rem" }}>
-        <div style={{ fontSize: "12px", color: "#555", marginBottom: "1rem", letterSpacing: "0.05em" }}>
-          OMEN AGENTS ON RITUAL CHAIN
+      {/* OmenSovereignAgent — hero */}
+      <div style={{ background: "#111", border: "1px solid rgba(124,58,237,0.3)", borderRadius: "12px", padding: "1.5rem", marginBottom: "1rem", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: "linear-gradient(90deg, #7c3aed, #f59e0b, transparent)" }}/>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+          <div>
+            <div style={{ fontSize: "1rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "4px" }}>OmenSovereignAgent</div>
+            <div style={{ fontSize: "11px", color: "#444", fontFamily: "monospace" }}>0x3260dDe013d8c5130092B3DFB7d44DdD995da528</div>
+          </div>
+          <button onClick={() => checkTrust("0x3260dDe013d8c5130092B3DFB7d44DdD995da528", "agent_safety.ritual_infernet_v1")} disabled={loading} style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.3)", borderRadius: "6px", padding: "6px 14px", color: "#7c3aed", fontSize: "12px", cursor: "pointer" }}>
+            {loading && checkedAddr === "0x3260dDe013d8c5130092B3DFB7d44DdD995da528" ? "..." : "Check trust →"}
+          </button>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {KNOWN_AGENTS.map(agent => (
-            <div key={agent.address} style={{
-              background: "#111", border: "1px solid #1a1a1a",
-              borderRadius: "12px", padding: "1.5rem",
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
-                <div>
-                  <div style={{ fontSize: "15px", fontWeight: "600", color: "#f5f5f5", marginBottom: "4px" }}>
-                    {agent.label}
-                  </div>
-                  <div style={{ fontSize: "11px", color: "#444", fontFamily: "monospace" }}>
-                    {agent.address}
-                  </div>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
-                  <span style={{
-                    fontSize: "10px", padding: "2px 8px", borderRadius: "4px",
-                    background: "rgba(124,58,237,0.1)", color: "#7c3aed",
-                    border: "1px solid rgba(124,58,237,0.2)",
-                  }}>{agent.type}</span>
-                  {agent.schedule && (
-                    <span style={{
-                      fontSize: "10px", padding: "2px 8px", borderRadius: "4px",
-                      background: "rgba(22,163,74,0.1)", color: "#16a34a",
-                      border: "1px solid rgba(22,163,74,0.2)",
-                    }}>Schedule #{agent.schedule}</span>
-                  )}
-                </div>
-              </div>
 
-              <div style={{ fontSize: "13px", color: "#666", marginBottom: "1rem" }}>
-                {agent.description}
-              </div>
+        {/* Key facts — card grid */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "1rem" }}>
+          {[
+            { label: "Type",           value: "Sovereign Agent",    color: "#7c3aed" },
+            { label: "Scheduler",      value: "0x080C · #2218803",  color: "#f59e0b" },
+            { label: "Wake Interval",  value: "Every 500 blocks",   color: "#f5f5f5" },
+            { label: "Human Trigger",  value: "None required",      color: "#16a34a" },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "8px", padding: "0.75rem" }}>
+              <div style={{ fontSize: "10px", color: "#555", marginBottom: "3px", letterSpacing: "0.05em" }}>{label}</div>
+              <div style={{ fontSize: "13px", fontWeight: "600", color }}>{value}</div>
+            </div>
+          ))}
+        </div>
 
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontSize: "11px", color: "#444", fontFamily: "monospace" }}>
-                  {agent.domain}
-                </div>
-                <button
-                  onClick={() => { setDomain(agent.domain); lookup(agent.address); }}
-                  style={{
-                    background: "transparent", border: "1px solid #2a2a2a",
-                    borderRadius: "6px", padding: "4px 12px",
-                    color: "#999", fontSize: "12px", cursor: "pointer",
-                  }}
-                >
-                  Check trust →
-                </button>
+        {/* Ritual tech used — compact */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.5rem", marginBottom: "1rem" }}>
+          {[
+            { label: "Scheduler (0x080C)",    desc: "Autonomous execution",      color: "#f59e0b" },
+            { label: "LLM Precompile (0x0802)", desc: "TEE-attested inference",  color: "#7c3aed" },
+            { label: "OmenRegistry",           desc: "Shared trust layer",       color: "#16a34a" },
+            { label: "TEE Proof",              desc: "Verified onchain",         color: "#8a8a8a" },
+          ].map(({ label, desc, color }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", background: `${color}08`, border: `1px solid ${color}22`, borderRadius: "6px" }}>
+              <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: color, flexShrink: 0 }}/>
+              <div>
+                <div style={{ fontSize: "11px", fontWeight: "600", color }}>{label}</div>
+                <div style={{ fontSize: "10px", color: "#555" }}>{desc}</div>
               </div>
+            </div>
+          ))}
+        </div>
 
-              {/* Sovereign agent heartbeat */}
-              {agent.schedule && blockNum && (
-                <div style={{
-                  marginTop: "1rem", padding: "0.75rem",
-                  background: "#0a0a0a", border: "1px solid #1a1a1a",
-                  borderRadius: "8px",
-                  display: "flex", justifyContent: "space-between",
-                }}>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "11px", color: "#555", marginBottom: "2px" }}>CURRENT BLOCK</div>
-                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#f5f5f5", fontFamily: "monospace" }}>
-                      {blockNum.toLocaleString()}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "11px", color: "#555", marginBottom: "2px" }}>WAKE INTERVAL</div>
-                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#f5f5f5" }}>500 blocks</div>
-                  </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "11px", color: "#555", marginBottom: "2px" }}>NEXT WAKE</div>
-                    <div style={{ fontSize: "13px", fontWeight: "600", color: "#16a34a", fontFamily: "monospace" }}>
-                      ~{blockNum + (500 - (blockNum % 500))}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ fontSize: "11px", color: "#555", marginBottom: "2px" }}>STATUS</div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                      <div style={{
-                        width: "6px", height: "6px", borderRadius: "50%",
-                        background: "#16a34a", boxShadow: "0 0 6px #16a34a",
-                      }}/>
-                      <span style={{ fontSize: "13px", fontWeight: "600", color: "#16a34a" }}>LIVE</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+        {/* TEE attestation */}
+        <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "8px", padding: "0.75rem 1rem", marginBottom: "1rem" }}>
+          <div style={{ fontSize: "10px", color: "#555", letterSpacing: "0.06em", marginBottom: "0.4rem" }}>LIVE TEE ATTESTATION</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+            <div style={{ fontSize: "12px", color: "#8a8a8a" }}>
+              Model: <span style={{ color: "#f59e0b" }}>GLM-4.7-FP8</span> · Executor: <span style={{ color: "#cfcfcf", fontFamily: "monospace" }}>0xDbd91...8Ff</span>
+            </div>
+            <a href="https://explorer.ritualfoundation.org/tx/0xeb9c80fca43e530a2bb31ef9ae4bd680ee5d66f96b9fce4cc7a595b8e7ec1658" target="_blank" rel="noopener noreferrer" style={{ fontSize: "11px", color: "#7c3aed", fontFamily: "monospace" }}>{"tx: 0xeb9c80...1658 ↗"}</a>
+          </div>
+        </div>
+
+        {/* Heartbeat */}
+        {blockNum && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1px", background: "#1a1a1a", borderRadius: "8px", overflow: "hidden" }}>
+            {[
+              { label: "CURRENT BLOCK", value: blockNum.toLocaleString(),               color: "#f5f5f5" },
+              { label: "INTERVAL",      value: "500 blocks",                             color: "#f5f5f5" },
+              { label: "NEXT WAKE",     value: `~${blockNum + (500 - (blockNum % 500))}`, color: "#16a34a" },
+              { label: "STATUS",        value: "● LIVE",                                 color: "#16a34a" },
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{ background: "#0a0a0a", padding: "0.75rem", textAlign: "center" }}>
+                <div style={{ fontSize: "10px", color: "#555", marginBottom: "3px", letterSpacing: "0.05em" }}>{label}</div>
+                <div style={{ fontSize: "12px", fontWeight: "700", color, fontFamily: "monospace" }}>{value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* OmenAgentAware */}
+      <div style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: "12px", padding: "1.25rem", marginBottom: "1rem", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: "linear-gradient(90deg, #16a34a, transparent)" }}/>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+          <div>
+            <div style={{ fontSize: "14px", fontWeight: "700", color: "#f5f5f5", marginBottom: "3px" }}>OmenAgentAware</div>
+            <div style={{ fontSize: "10px", color: "#444", fontFamily: "monospace" }}>0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295</div>
+          </div>
+          <button onClick={() => checkTrust("0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295", "agent_safety.ritual_infernet_v1")} disabled={loading} style={{ background: "transparent", border: "1px solid #2a2a2a", borderRadius: "6px", padding: "4px 12px", color: "#999", fontSize: "12px", cursor: "pointer" }}>
+            {loading && checkedAddr === "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295" ? "..." : "Check trust →"}
+          </button>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem" }}>
+          {[
+            { label: "Type",      value: "Trust-Aware Agent", color: "#16a34a" },
+            { label: "Checks",    value: "OmenRegistry",      color: "#f59e0b" },
+            { label: "Behavior",  value: "TRUSTED → Execute · REVOKED → Deny", color: "#f5f5f5" },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "6px", padding: "0.6rem 0.75rem" }}>
+              <div style={{ fontSize: "10px", color: "#555", marginBottom: "2px" }}>{label}</div>
+              <div style={{ fontSize: "11px", fontWeight: "600", color }}>{value}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Agent-to-agent verification */}
-      <div style={{
-        background: "#111", border: "1px solid #1a1a1a",
-        borderRadius: "12px", padding: "1.5rem",
-      }}>
-        <div style={{ fontSize: "12px", color: "#8a8a8a", marginBottom: "0.5rem", letterSpacing: "0.05em" }}>
-          AGENT-TO-AGENT VERIFICATION
+      {/* OmenAgentDirect */}
+      <div style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: "12px", padding: "1.25rem", marginBottom: "2rem", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "2px", background: "linear-gradient(90deg, #444, transparent)" }}/>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+          <div>
+            <div style={{ fontSize: "14px", fontWeight: "700", color: "#f5f5f5", marginBottom: "3px" }}>OmenAgentDirect</div>
+            <div style={{ fontSize: "10px", color: "#444", fontFamily: "monospace" }}>0x7040235955B2D397d7CB717a300911Ec68644aFe</div>
+          </div>
+          <button onClick={() => checkTrust("0x7040235955B2D397d7CB717a300911Ec68644aFe", "counterparty_trust.ritual_trade_v1")} disabled={loading} style={{ background: "transparent", border: "1px solid #2a2a2a", borderRadius: "6px", padding: "4px 12px", color: "#999", fontSize: "12px", cursor: "pointer" }}>
+            {loading && checkedAddr === "0x7040235955B2D397d7CB717a300911Ec68644aFe" ? "..." : "Check trust →"}
+          </button>
         </div>
-        <h2 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
-          Agents Verifying Agents
-        </h2>
-        <p style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.7", marginBottom: "1.5rem" }}>
-          OmenRegistry accepts any address — wallets and agent contracts are evaluated identically.
-          Any agent can verify another agent before interacting.
-          Domain: <span style={{ color: "#f59e0b", fontFamily: "monospace" }}>agent_mesh.ritual_infernet_v1</span>
-        </p>
-
-        <AgentToAgentDemo />
-
-        <div style={{ marginTop: "1.25rem", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem" }}>
           {[
-            { label: "01", title: "Agent registers",    desc: "Any contract address can be a subject in OmenRegistry" },
-            { label: "02", title: "Evidence builds",    desc: "Onchain behavior generates reproducible SignalObjects" },
-            { label: "03", title: "Agent checks agent", desc: "Call isTrusted(address) before any cross-agent interaction" },
-          ].map(({ label, title, desc }) => (
-            <div key={label} style={{
-              background: "#0a0a0a", border: "1px solid #1a1a1a",
-              borderRadius: "8px", padding: "1rem",
-            }}>
-              <div style={{ fontSize: "11px", color: "#555", marginBottom: "4px", fontFamily: "monospace" }}>{label}</div>
-              <div style={{ fontSize: "13px", fontWeight: "600", color: "#f5f5f5", marginBottom: "4px" }}>{title}</div>
-              <div style={{ fontSize: "12px", color: "#8a8a8a", lineHeight: "1.5" }}>{desc}</div>
+            { label: "Type",     value: "Baseline Agent",    color: "#555" },
+            { label: "Checks",   value: "None",              color: "#dc2626" },
+            { label: "Behavior", value: "Always executes",   color: "#555" },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "6px", padding: "0.6rem 0.75rem" }}>
+              <div style={{ fontSize: "10px", color: "#555", marginBottom: "2px" }}>{label}</div>
+              <div style={{ fontSize: "11px", fontWeight: "600", color }}>{value}</div>
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Why Ritual */}
+      <div style={{ background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.15)", borderRadius: "12px", padding: "1.25rem", marginBottom: "2rem" }}>
+        <div style={{ fontSize: "11px", color: "#7c3aed", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>WHY OMEN REQUIRES RITUAL</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
+          {[
+            { label: "Atomic Intelligence", desc: "LLM in TEE with cryptographic proof", color: "#f59e0b" },
+            { label: "Sovereign Agents",    desc: "No keeper — wakes via 0x080C",        color: "#7c3aed" },
+            { label: "Verifiable Trust",    desc: "Merkle-committed, independently verifiable", color: "#16a34a" },
+          ].map(({ label, desc, color }) => (
+            <div key={label} style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "8px", padding: "0.875rem" }}>
+              <div style={{ fontSize: "11px", fontWeight: "700", color, marginBottom: "4px" }}>{label}</div>
+              <div style={{ fontSize: "11px", color: "#8a8a8a", lineHeight: "1.5" }}>{desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Agent-to-agent */}
+      <div style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: "12px", padding: "1.5rem" }}>
+        <div style={{ fontSize: "12px", color: "#8a8a8a", marginBottom: "0.5rem", letterSpacing: "0.05em" }}>AGENT-TO-AGENT VERIFICATION</div>
+        <h2 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>Agents Verifying Agents</h2>
+        <p style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.6", marginBottom: "1.25rem" }}>
+          Any agent can verify another agent through OmenRegistry before interacting.
+          Domain: <span style={{ color: "#f59e0b", fontFamily: "monospace" }}>agent_mesh.ritual_infernet_v1</span>
+        </p>
+        <AgentToAgentDemo />
       </div>
 
     </div>
   );
+}
+
 function AgentToAgentDemo() {
   const SCENARIOS = [
-    {
-      id: "trusted",
-      caller: "Research Agent",
-      callerAddr: "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295",
-      target: "Treasury Agent",
-      targetAddr: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001",
-      expected: "TRUSTED",
-      description: "Research Agent verifies Treasury Agent before requesting data.",
-      outcome: "Interaction Allowed",
-    },
-    {
-      id: "revoked",
-      caller: "Research Agent",
-      callerAddr: "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295",
-      target: "Unknown Agent",
-      targetAddr: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c",
-      expected: "REVOKED",
-      description: "Research Agent detects flagged behavior — interaction rejected.",
-      outcome: "Interaction Denied",
-    },
+    { id: "trusted", caller: "Research Agent", callerAddr: "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295", target: "Treasury Agent", targetAddr: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", expected: "TRUSTED", description: "Verifies Treasury Agent before requesting data." },
+    { id: "revoked", caller: "Research Agent", callerAddr: "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295", target: "Unknown Agent",  targetAddr: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c", expected: "REVOKED", description: "Detects flagged behavior — interaction rejected." },
   ];
 
-  const [selected, setSelected]   = useState<any>(null);
-  const [simState, setSimState]   = useState<"idle"|"checking"|"decided">("idle");
-  const [signal, setSignal]       = useState<any>(null);
+  const [selected, setSelected] = useState<any>(null);
+  const [simState, setSimState] = useState<"idle"|"checking"|"decided">("idle");
+  const [signal, setSignal]     = useState<any>(null);
 
   const runSim = async (scenario: typeof SCENARIOS[0]) => {
-    setSelected(scenario);
-    setSimState("checking");
-    setSignal(null);
-
-    const r = await fetch("/api/verdict/read", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        subject: scenario.targetAddr,
-        domain: "agent_safety.ritual_infernet_v1",
-        action: "execute",
-      }),
-    });
+    setSelected(scenario); setSimState("checking"); setSignal(null);
+    const r = await fetch("/api/verdict/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject: scenario.targetAddr, domain: "agent_safety.ritual_infernet_v1", action: "execute" }) });
     const d = await r.json();
-
-    const corrected = {
-      ...d,
-      verdict: {
-        ...d.verdict,
-        value: scenario.expected,
-        action: scenario.expected === "TRUSTED" ? "Interaction allowed" : "Interaction denied",
-      },
-      handshake: {
-        allowed: scenario.expected === "TRUSTED",
-        reason: scenario.expected === "TRUSTED"
-          ? "Agent operating within safe parameters"
-          : "Unauthorized actions or high anomaly score",
-      },
-    };
-
+    const corrected = { ...d, verdict: { ...d.verdict, value: scenario.expected, action: scenario.expected === "TRUSTED" ? "Interaction allowed" : "Interaction denied" }, handshake: { allowed: scenario.expected === "TRUSTED", reason: scenario.expected === "TRUSTED" ? "Agent operating within safe parameters" : "Unauthorized actions or high anomaly score" } };
     setSignal(corrected);
-    await new Promise(res => setTimeout(res, 800));
+    await new Promise(res => setTimeout(res, 700));
     setSimState("decided");
   };
 
@@ -392,106 +293,44 @@ function AgentToAgentDemo() {
   const isTrusted = selected?.expected === "TRUSTED";
 
   return (
-    <div style={{
-      background: "#0a0a0a", border: "1px solid #1a1a1a",
-      borderRadius: "10px", padding: "1.25rem",
-    }}>
-      {/* Scenario picker */}
-      <div style={{ fontSize: "11px", color: "#8a8a8a", marginBottom: "0.75rem", letterSpacing: "0.05em" }}>
-        SELECT SCENARIO
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1.25rem" }}>
+    <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "10px", padding: "1.25rem" }}>
+      <div style={{ fontSize: "11px", color: "#8a8a8a", marginBottom: "0.75rem", letterSpacing: "0.05em" }}>SELECT SCENARIO</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
         {SCENARIOS.map(s => (
-          <div
-            key={s.id}
-            onClick={() => { reset(); setTimeout(() => runSim(s), 50); }}
-            style={{
-              background: selected?.id === s.id ? "rgba(124,58,237,0.08)" : "#111",
-              border: `1px solid ${selected?.id === s.id ? "rgba(124,58,237,0.3)" : "#1a1a1a"}`,
-              borderRadius: "8px", padding: "1rem", cursor: "pointer", transition: "all 0.2s",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-              <div style={{ fontSize: "12px", fontWeight: "600", color: "#f5f5f5" }}>
-                {s.caller} → {s.target}
-              </div>
-              <span style={{
-                fontSize: "9px", padding: "2px 7px", borderRadius: "4px", fontWeight: "700",
-                color: s.expected === "TRUSTED" ? "#16a34a" : "#dc2626",
-                background: s.expected === "TRUSTED" ? "rgba(22,163,74,0.08)" : "rgba(220,38,38,0.08)",
-                border: `1px solid ${s.expected === "TRUSTED" ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}`,
-              }}>{s.expected}</span>
+          <div key={s.id} onClick={() => { reset(); setTimeout(() => runSim(s), 50); }} style={{ background: selected?.id === s.id ? "rgba(124,58,237,0.08)" : "#111", border: `1px solid ${selected?.id === s.id ? "rgba(124,58,237,0.3)" : "#1a1a1a"}`, borderRadius: "8px", padding: "0.875rem", cursor: "pointer", transition: "all 0.2s" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+              <div style={{ fontSize: "12px", fontWeight: "600", color: "#f5f5f5" }}>{s.caller} → {s.target}</div>
+              <span style={{ fontSize: "9px", padding: "2px 7px", borderRadius: "4px", fontWeight: "700", color: s.expected === "TRUSTED" ? "#16a34a" : "#dc2626", background: s.expected === "TRUSTED" ? "rgba(22,163,74,0.08)" : "rgba(220,38,38,0.08)", border: `1px solid ${s.expected === "TRUSTED" ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}` }}>{s.expected}</span>
             </div>
             <div style={{ fontSize: "11px", color: "#8a8a8a" }}>{s.description}</div>
           </div>
         ))}
       </div>
-
-      {/* Flow + result */}
       {selected && (
         <div>
-          {simState === "checking" && (
-            <div style={{ textAlign: "center", padding: "0.75rem", color: "#8a8a8a", fontSize: "12px" }}>
-              ⏳ Querying OmenRegistry...
-            </div>
-          )}
-
+          {simState === "checking" && <div style={{ textAlign: "center", padding: "0.75rem", color: "#8a8a8a", fontSize: "12px" }}>⏳ Querying OmenRegistry...</div>}
           {simState === "decided" && signal && (
             <div>
-              {/* Visual flow */}
-              <div style={{ fontSize: "11px", color: "#555", marginBottom: "0.75rem", letterSpacing: "0.06em" }}>
-                VERIFICATION FLOW
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0", overflowX: "auto", marginBottom: "1.25rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0", overflowX: "auto", marginBottom: "1rem" }}>
                 {[
-                  { label: selected.caller,    value: selected.callerAddr.slice(0,10)+"...", color: "#7c3aed" },
+                  { label: selected.caller, value: selected.callerAddr.slice(0,10)+"...", color: "#7c3aed" },
                   null,
-                  { label: "OmenRegistry",     value: "agent_mesh domain",                  color: "#f59e0b" },
+                  { label: "OmenRegistry",  value: "agent_mesh",                         color: "#f59e0b" },
                   null,
-                  { label: "Trust Signal",     value: signal.verdict?.value,                color: isTrusted ? "#16a34a" : "#dc2626" },
+                  { label: "Trust Signal",  value: signal.verdict?.value,                color: isTrusted ? "#16a34a" : "#dc2626" },
                   null,
-                  { label: selected.target,    value: isTrusted ? "✓ Allowed" : "✕ Denied", color: isTrusted ? "#16a34a" : "#dc2626" },
+                  { label: selected.target, value: isTrusted ? "✓ Allowed" : "✕ Denied", color: isTrusted ? "#16a34a" : "#dc2626" },
                 ].map((item, i) => {
-                  if (!item) return (
-                    <div key={i} style={{ display: "flex", alignItems: "center", padding: "0 2px", flexShrink: 0 }}>
-                      <div style={{ width: "16px", height: "1px", background: "#2a2a2a" }}/>
-                      <div style={{ width: "4px", height: "4px", borderTop: "1px solid #3a3a3a", borderRight: "1px solid #3a3a3a", transform: "rotate(45deg)", marginLeft: "-3px" }}/>
-                    </div>
-                  );
-                  return (
-                    <div key={i} style={{
-                      display: "flex", flexDirection: "column", alignItems: "center", gap: "3px",
-                      padding: "8px 10px", flexShrink: 0,
-                      background: `${item.color}11`, border: `1px solid ${item.color}33`,
-                      borderRadius: "8px", minWidth: "90px",
-                    }}>
-                      <div style={{ fontSize: "9px", color: "#555", whiteSpace: "nowrap", letterSpacing: "0.04em" }}>{item.label}</div>
-                      <div style={{ fontSize: "10px", fontWeight: "700", color: item.color, whiteSpace: "nowrap", fontFamily: "monospace" }}>{item.value}</div>
-                    </div>
-                  );
+                  if (!item) return <div key={i} style={{ display: "flex", alignItems: "center", padding: "0 2px", flexShrink: 0 }}><div style={{ width: "14px", height: "1px", background: "#2a2a2a" }}/><div style={{ width: "4px", height: "4px", borderTop: "1px solid #3a3a3a", borderRight: "1px solid #3a3a3a", transform: "rotate(45deg)", marginLeft: "-3px" }}/></div>;
+                  return <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", padding: "6px 8px", flexShrink: 0, background: `${item.color}11`, border: `1px solid ${item.color}33`, borderRadius: "6px", minWidth: "75px" }}><div style={{ fontSize: "9px", color: "#555", whiteSpace: "nowrap" }}>{item.label}</div><div style={{ fontSize: "10px", fontWeight: "700", color: item.color, whiteSpace: "nowrap", fontFamily: "monospace" }}>{item.value}</div></div>;
                 })}
               </div>
-
-              {/* Result */}
-              <div style={{
-                padding: "1rem", borderRadius: "8px", textAlign: "center",
-                background: isTrusted ? "rgba(22,163,74,0.06)" : "rgba(220,38,38,0.06)",
-                border: `1px solid ${isTrusted ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}`,
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-              }}>
+              <div style={{ padding: "0.875rem 1rem", borderRadius: "8px", background: isTrusted ? "rgba(22,163,74,0.06)" : "rgba(220,38,38,0.06)", border: `1px solid ${isTrusted ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                  <div style={{ fontSize: "14px", fontWeight: "800", color: isTrusted ? "#16a34a" : "#dc2626", marginBottom: "2px" }}>
-                    {isTrusted ? "✓ Interaction Allowed" : "✕ Interaction Denied"}
-                  </div>
-                  <div style={{ fontSize: "11px", color: "#8a8a8a" }}>
-                    {signal.handshake?.reason}
-                  </div>
+                  <div style={{ fontSize: "13px", fontWeight: "800", color: isTrusted ? "#16a34a" : "#dc2626", marginBottom: "2px" }}>{isTrusted ? "✓ Interaction Allowed" : "✕ Interaction Denied"}</div>
+                  <div style={{ fontSize: "11px", color: "#8a8a8a" }}>{signal.handshake?.reason}</div>
                 </div>
-                <button onClick={reset} style={{
-                  background: "transparent", border: "1px solid #333",
-                  borderRadius: "6px", padding: "4px 12px",
-                  color: "#8a8a8a", fontSize: "11px", cursor: "pointer",
-                }}>Reset</button>
+                <button onClick={reset} style={{ background: "transparent", border: "1px solid #333", borderRadius: "6px", padding: "4px 12px", color: "#8a8a8a", fontSize: "11px", cursor: "pointer" }}>Reset</button>
               </div>
             </div>
           )}
@@ -499,6 +338,4 @@ function AgentToAgentDemo() {
       )}
     </div>
   );
-}
-
 }
