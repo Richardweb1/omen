@@ -131,7 +131,7 @@ export default function Home() {
             gap: "0", flexWrap: "nowrap", overflowX: "auto",
           }}>
             {[
-              { label: "Onchain Activity", sub: "tx history · approvals",      color: "#8a8a8a", icon: "◈" },
+              { label: "Onchain Activity", sub: "agent",      color: "#8a8a8a", icon: "◈" },
               null,
               { label: "Evidence Object",  sub: "merkle root · features",      color: "#f59e0b", icon: "⬡" },
               null,
@@ -218,7 +218,7 @@ export default function Home() {
           }}>
             {[
               { step: "01", title: "Collect Evidence",  desc: "Omen gathers behavioral and onchain signals relevant to trust evaluation.", icon: "◈", color: "#f59e0b" },
-              { step: "02", title: "Evaluate Trust",    desc: "Ritual-powered intelligence analyzes evidence and produces a verifiable trust verdict.", icon: "⬡", color: "#7c3aed" },
+              { step: "02", title: "Evaluate Trust",    desc: "Ritual-powered intelligence analyzes evidence and produces a verifiable trust signal.", icon: "⬡", color: "#7c3aed" },
               { step: "03", title: "Coordinate Safely", desc: "Agents, wallets, and applications consume trust signals before taking action.", icon: "◎", color: "#16a34a" },
             ].map(({ step, title, desc, icon, color }) => (
               <div key={step} className="card-hover" style={{
@@ -291,7 +291,34 @@ export default function Home() {
             ))}
           </div>
         </div>
-
+              {/* Why Ritual */}
+        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 2rem 4rem" }}>
+          <div style={{
+            background: "#0d0d0d", border: "1px solid #1a1a1a",
+            borderRadius: "12px", padding: "1.5rem",
+          }}>
+            <div style={{ fontSize: "11px", color: "#7c3aed", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "1rem" }}>
+              WHY OMEN RUNS ON RITUAL
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "0.75rem" }}>
+              {[
+                { label: "Scheduler (0x080C)",      desc: "Autonomous agent execution",         color: "#f59e0b" },
+                { label: "LLM Precompile (0x0802)", desc: "TEE-attested inference",             color: "#7c3aed" },
+                { label: "TEE Attestation",         desc: "Cryptographic proof of model",       color: "#7c3aed" },
+                { label: "Sovereign Agents",        desc: "No keeper, no external dependency",  color: "#16a34a" },
+                { label: "Trust-Aware Execution",   desc: "TRUSTED → proceed · REVOKED → deny", color: "#f59e0b" },
+              ].map(({ label, desc, color }) => (
+                <div key={label} style={{
+                  background: "#111", border: `1px solid ${color}22`,
+                  borderRadius: "8px", padding: "0.875rem",
+                }}>
+                  <div style={{ fontSize: "10px", fontWeight: "700", color, marginBottom: "4px", letterSpacing: "0.04em" }}>✓ {label}</div>
+                  <div style={{ fontSize: "11px", color: "#8a8a8a", lineHeight: "1.5" }}>{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
         {/* Why Omen */}
         <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 2rem 7rem" }}>
           <div style={{
@@ -334,7 +361,7 @@ export default function Home() {
                 borderRadius: "8px", fontWeight: "700",
                 fontSize: "14px", textDecoration: "none",
               }}>
-                Build Evidence →
+                View Demo →
               </Link>
               <Link href="/agents" className="btn-secondary" style={{
                 background: "transparent", color: "#cfcfcf",

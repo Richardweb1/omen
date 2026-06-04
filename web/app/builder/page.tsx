@@ -223,7 +223,7 @@ export default function Builder() {
           borderRadius: "8px", padding: "10px 14px",
           color: "#f59e0b", fontSize: "13px", marginBottom: "1rem",
         }}>
-          ⚠️ Connect your wallet to sign transactions in step 3. You will pay gas.
+          ⚠️ Connect your wallet to sign. All transactions are user-signed  no backend wallet.
         </div>
       )}
 
@@ -233,12 +233,12 @@ export default function Builder() {
       }}>
         <div style={{ marginBottom: "1rem" }}>
           <label style={{ fontSize: "12px", color: "#8a8a8a", display: "block", marginBottom: "6px" }}>
-            SUBJECT ADDRESS
+            SUBJECT — wallet, agent, or contract
           </label>
           <input
             value={subject}
             onChange={e => { setSubject(e.target.value); reset(); }}
-            placeholder="0x..."
+            placeholder="0x... wallet, agent contract, or autonomous system"
             style={{
               width: "100%", background: "#0a0a0a",
               border: "1px solid #222", borderRadius: "8px",

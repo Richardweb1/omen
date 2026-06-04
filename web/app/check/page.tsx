@@ -4,9 +4,9 @@ import { useState } from "react";
 const API = '/api';
 
 const DEMO = [
-  { address: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", label: "Clean Trade Subject", expected: "TRUSTED" },
-  { address: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c", label: "Risky Trade Subject", expected: "REVOKED" },
-  { address: "0x0000000000000000000000000000000000000b0b", label: "Agent Safety Subject", expected: "TRUSTED" },
+  { address: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", label: "Trusted Counterparty", expected: "TRUSTED" },
+  { address: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c", label: "Flagged Counterparty", expected: "REVOKED" },
+  { address: "0x0000000000000000000000000000000000000b0b", label: "Trusted Agent Subject", expected: "TRUSTED" },
 ];
 
 const VSTYLE: any = {
@@ -52,7 +52,7 @@ export default function Verdict() {
           Trust Signal Check
         </h1>
         <p style={{ color: "#666", fontSize: "14px" }}>
-          Read the latest trust signal for any address from OmenRegistry
+          Read the trust signal for any address — wallet, agent, or contract
         </p>
       </div>
 
@@ -65,7 +65,7 @@ export default function Verdict() {
           <input
             value={subject}
             onChange={e => setSubject(e.target.value)}
-            placeholder="0x... wallet or agent address"
+            placeholder="0x... wallet, agent, or contract"
             style={{
               flex: 1, background: "#0a0a0a",
               border: "1px solid #222", borderRadius: "8px",
@@ -159,10 +159,10 @@ export default function Verdict() {
         </div>
       )}
 
-      {/* DEMO ADDRESSES */}
+      {/* DEMO SUBJECTS */}
       <div>
         <div style={{ fontSize: "12px", color: "#555", marginBottom: "0.75rem", letterSpacing: "0.05em" }}>
-          DEMO ADDRESSES
+          DEMO SUBJECTS
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {DEMO.map(({ address, label, expected }) => (
