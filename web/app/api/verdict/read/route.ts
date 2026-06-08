@@ -1,70 +1,81 @@
 import { NextResponse } from "next/server";
-import { createHash } from "crypto";
+import { ethers } from "ethers";
 
-function buildSignal(subject: string, domain: string) {
-  const addrHash = BigInt("0x" + createHash("sha256").update(subject).digest("hex"));
-  let features: number[];
+const RPC_URL = process.env.RITUAL_RPC_URL || "https://rpc.ritualfoundation.org";
+const REGISTRY_ADDRESS =
+  process.env.OMEN_REGISTRY_ADDRESS || "0xCbB34EB8651dc8f1d65a20165C1166C13f626620";
 
-  if (domain === "counterparty_trust.ritual_trade_v1") {
-    features = [
-      Number((addrHash % 80n) + 5n),
-      Number((addrHash >> 8n) % 10n),
-      Number((addrHash >> 16n) % 20n) + 1,
-      Number((addrHash >> 24n) % 8n),
-      (addrHash % 100n) > 85n ? 1 : 0,
-    ];
-  } else {
-    features = [
-      Number((addrHash % 50n) + 5n),
-      Number((addrHash >> 8n) % 5n),
-      (addrHash % 100n) > 90n ? 1 : 0,
-      Number((addrHash >> 16n) % 3n),
-      Number((addrHash >> 24n) % 100n),
-    ];
-  }
-  return features;
+const REGISTRY_ABI = [
+  "function readVerdict(address subject, string calldata domain) external view returns (uint8 verdict, uint256 timestamp, bool isSealed, bool isRevoked, bool isFresh)",
+  "function previewHandshake(address subject, string calldata domain, string calldata action) external view returns (bool allowed, string memory reason)",
+];
+
+const VERDICT_NAMES = ["UNSEEN", "TRUSTED", "PENDING", "REVOKED", "LAPSED"] as const;
+
+function recommendedAction(verdictId: number, hasRecord: boolean) {
+  if (!hasRecord) return "Build Signal";
+  if (verdictId === 1) return "Execute";
+  if (verdictId === 2) return "Review First";
+  if (verdictId === 3) return "Deny";
+  if (verdictId === 4) return "Build Signal";
+  return "Build Signal";
 }
 
-function evaluate(domain: string, features: number[]): [number, string] {
-  if (domain === "counterparty_trust.ritual_trade_v1") {
-    const [txCount, failedTx,, unbounded, flagged] = features;
-    if (txCount < 3)                                return [0, "Insufficient transaction history"];
-    if (flagged > 0 || unbounded > 5)               return [3, "Flagged interactions or excessive unbounded approvals"];
-    if (failedTx > 0 && failedTx >= txCount / 3)    return [2, "High failure rate, review needed"];
-    if (txCount >= 10)                              return [1, "Clean activity profile, trusted counterparty"];
-    return [2, "Activity present but limited history"];
-  }
-  const [,, unauthorized,, anomaly] = features;
-  if (unauthorized > 0 || anomaly >= 70) return [3, "Unauthorized actions or high anomaly score"];
-  if (anomaly >= 30)                     return [2, "Moderate anomaly, review recommended"];
-  return [1, "Agent operating within safe parameters"];
+function explanation(value: string, reason: string, hasRecord: boolean) {
+  if (!hasRecord) return "No trust signal exists in OmenRegistry for this subject and domain.";
+  if (value === "LAPSED") return "A trust signal exists in OmenRegistry, but it is no longer fresh.";
+  if (reason) return reason;
+  if (value === "TRUSTED") return "OmenRegistry contains a fresh trusted signal for this subject.";
+  if (value === "REVOKED") return "OmenRegistry contains a revoked signal for this subject.";
+  if (value === "PENDING") return "OmenRegistry contains an inconclusive signal for this subject.";
+  return "OmenRegistry returned no usable trust signal for this subject.";
 }
-
-const VERDICT_NAMES = ["UNSEEN","TRUSTED","PENDING","REVOKED","LAPSED"];
-const VERDICT_ACTIONS: Record<number,string> = {0:"No data yet",1:"Safe to interact",2:"Review first",3:"Block it",4:"Refresh needed"};
 
 export async function POST(req: Request) {
   const { subject, domain = "counterparty_trust.ritual_trade_v1", action = "trade" } = await req.json();
+
   if (!subject) return NextResponse.json({ error: "subject required" }, { status: 400 });
+  if (!ethers.isAddress(subject)) return NextResponse.json({ error: "invalid address" }, { status: 400 });
 
-  const features = buildSignal(subject, domain);
-  const [verdictId, reasoning] = evaluate(domain, features);
+  try {
+    const provider = new ethers.JsonRpcProvider(RPC_URL);
+    const registry = new ethers.Contract(REGISTRY_ADDRESS, REGISTRY_ABI, provider);
+    const [verdictRaw, timestampRaw, isTrusted, isRevoked, isFresh] = await registry.readVerdict(subject, domain);
+    const [allowed, reason] = await registry.previewHandshake(subject, domain, action);
 
-  return NextResponse.json({
-    subject, domain,
-    verdict: {
-      value:     VERDICT_NAMES[verdictId],
-      verdictId,
-      action:    VERDICT_ACTIONS[verdictId],
-      timestamp: Math.floor(Date.now() / 1000),
-      isTRUSTED:  verdictId === 1,
-      isRevoked: verdictId === 3,
-      isFresh:   true,
-    },
-    handshake: {
-      allowed: verdictId === 1,
-      reason:  reasoning,
-      action,
-    },
-  });
+    const rawVerdictId = Number(verdictRaw);
+    const timestamp = Number(timestampRaw);
+    const hasRecord = timestamp > 0;
+    const displayVerdictId = hasRecord && !isFresh ? 4 : rawVerdictId;
+    const value = VERDICT_NAMES[displayVerdictId] || "UNSEEN";
+
+    return NextResponse.json({
+      subject,
+      domain,
+      source: "OmenRegistry",
+      registry: REGISTRY_ADDRESS,
+      explorer: `https://explorer.ritualfoundation.org/address/${REGISTRY_ADDRESS}`,
+      verdict: {
+        value,
+        verdictId: displayVerdictId,
+        rawValue: VERDICT_NAMES[rawVerdictId] || "UNSEEN",
+        rawVerdictId,
+        timestamp,
+        isTrusted,
+        isRevoked,
+        isFresh,
+        hasRecord,
+      },
+      recommendedAction: recommendedAction(displayVerdictId, hasRecord),
+      explanation: explanation(value, reason, hasRecord),
+      handshake: {
+        allowed,
+        reason,
+        action,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "registry read failed";
+    return NextResponse.json({ error: message.slice(0, 180) }, { status: 500 });
+  }
 }

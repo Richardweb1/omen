@@ -1,412 +1,323 @@
 "use client";
-import { useEffect, useState } from "react";
-import Link from "next/link";
 
-const API = '/api';
+import Link from "next/link";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  Database,
+  ExternalLink,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
+
+type VerdictValue = "TRUSTED" | "REVOKED" | "PENDING" | "UNSEEN" | "LAPSED";
+
+type Health = {
+  status?: string;
+  block?: number;
+  contracts?: {
+    registry?: string;
+    judgment?: string;
+  };
+};
+
+type TrustResult = {
+  subject: string;
+  domain: string;
+  source: "OmenRegistry";
+  registry: string;
+  explorer: string;
+  recommendedAction: string;
+  explanation: string;
+  verdict: {
+    value: VerdictValue;
+    rawValue: VerdictValue;
+    timestamp: number;
+    isFresh: boolean;
+    hasRecord: boolean;
+  };
+  handshake: {
+    allowed: boolean;
+    reason: string;
+    action: string;
+  };
+};
+
+type ActivityItem = {
+  id: string;
+  source: "OmenRegistry" | "OmenJudgment" | "OmenAgentAware";
+  type: string;
+  subject: string;
+  domain: string;
+  status: string;
+  detail: string;
+  blockNumber: number;
+  txHash: string;
+  explorer: string;
+};
+
+type ActivityResponse = {
+  empty: boolean;
+  fromBlock?: number;
+  toBlock?: number;
+  items: ActivityItem[];
+};
+
+const domains = [
+  {
+    value: "counterparty_trust.ritual_trade_v1",
+    label: "Counterparty Trust",
+    action: "trade",
+  },
+  {
+    value: "agent_safety.ritual_infernet_v1",
+    label: "Agent Safety",
+    action: "execute",
+  },
+];
+
+const statusClass: Record<VerdictValue | string, string> = {
+  TRUSTED: "trusted",
+  REVOKED: "revoked",
+  PENDING: "pending",
+  UNSEEN: "unseen",
+  LAPSED: "lapsed",
+  REVIEW: "pending",
+};
+
+function shortAddress(address: string) {
+  if (address.length < 12) return address;
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function formatTimestamp(timestamp: number) {
+  if (!timestamp) return "No timestamp";
+  const ms = timestamp > 10_000_000_000 ? timestamp : timestamp * 1000;
+  return new Date(ms).toLocaleString();
+}
 
 export default function Home() {
-  const [health, setHealth] = useState<any>(null);
+  const [health, setHealth] = useState<Health | null>(null);
+  const [subject, setSubject] = useState("");
+  const [domain, setDomain] = useState(domains[0].value);
+  const [result, setResult] = useState<TrustResult | null>(null);
+  const [activity, setActivity] = useState<ActivityResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [activityLoading, setActivityLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const activeDomain = useMemo(() => domains.find((item) => item.value === domain) || domains[0], [domain]);
 
   useEffect(() => {
-    fetch(`${API}/health`)
-      .then(r => r.json())
-      .then(setHealth)
-      .catch(() => {});
+    fetch("/api/health")
+      .then((response) => response.json())
+      .then((data: Health) => setHealth(data))
+      .catch(() => undefined);
   }, []);
 
+  const loadActivity = async () => {
+    setActivityLoading(true);
+    try {
+      const response = await fetch("/api/activity?limit=12");
+      const data = (await response.json()) as ActivityResponse;
+      setActivity(data);
+    } catch {
+      setActivity({ empty: true, items: [] });
+    } finally {
+      setActivityLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetch("/api/activity?limit=12")
+      .then((response) => response.json())
+      .then((data: ActivityResponse) => setActivity(data))
+      .catch(() => setActivity({ empty: true, items: [] }))
+      .finally(() => setActivityLoading(false));
+  }, []);
+
+  const checkTrust = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    setResult(null);
+
+    try {
+      const response = await fetch("/api/verdict/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, domain, action: activeDomain.action }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) throw new Error(data.error || "Trust check failed");
+      setResult(data as TrustResult);
+    } catch (checkError) {
+      setError(checkError instanceof Error ? checkError.message : "Trust check failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const block = health?.block ? health.block.toLocaleString() : "syncing";
+  const registry = health?.contracts?.registry || "0xCbB34EB8651dc8f1d65a20165C1166C13f626620";
+  const resultStatus = result?.verdict.value || "UNSEEN";
+
   return (
-    <div style={{ background: "#0a0a0a", minHeight: "100vh", position: "relative" }}>
-
-      {/* Background */}
-      <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
-        <div style={{
-          position: "absolute", inset: 0,
-          backgroundImage: `
-            linear-gradient(rgba(124,58,237,0.04) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(124,58,237,0.04) 1px, transparent 1px)
-          `,
-          backgroundSize: "60px 60px",
-          animation: "gridMove 25s linear infinite",
-        }}/>
-        <div style={{
-          position: "absolute", top: "10%", left: "-15%",
-          width: "600px", height: "600px",
-          background: "radial-gradient(ellipse, rgba(124,58,237,0.10) 0%, transparent 70%)",
-          filter: "blur(60px)",
-          animation: "floatLeft 14s ease-in-out infinite",
-        }}/>
-        <div style={{
-          position: "absolute", top: "20%", right: "-15%",
-          width: "600px", height: "600px",
-          background: "radial-gradient(ellipse, rgba(245,158,11,0.08) 0%, transparent 70%)",
-          filter: "blur(60px)",
-          animation: "floatRight 16s ease-in-out infinite",
-        }}/>
-        <div style={{
-          position: "absolute", bottom: "-5%", left: "50%",
-          transform: "translateX(-50%)",
-          width: "700px", height: "300px",
-          background: "radial-gradient(ellipse, rgba(124,58,237,0.05) 0%, transparent 70%)",
-          filter: "blur(80px)",
-        }}/>
-      </div>
-
-      {/* Content */}
-      <div style={{ position: "relative", zIndex: 1 }}>
-
-        {/* Hero */}
-        <div style={{
-          maxWidth: "1100px", margin: "0 auto",
-          padding: "8rem 2rem 6rem", textAlign: "center",
-        }}>
-          <div className="fade-up" style={{
-            display: "inline-flex", alignItems: "center", gap: "6px",
-            background: "rgba(245,158,11,0.07)",
-            border: "1px solid rgba(245,158,11,0.2)",
-            borderRadius: "20px", padding: "5px 16px",
-            fontSize: "11px", color: "#f59e0b",
-            marginBottom: "2.5rem", letterSpacing: "0.08em",
-          }}>
-            <div style={{
-              width: "5px", height: "5px", borderRadius: "50%",
-              background: "#f59e0b", boxShadow: "0 0 6px #f59e0b",
-            }}/>
-            LIVE ON RITUAL CHAIN · {health?.block ? `BLOCK ${health.block.toLocaleString()}` : "CONNECTING..."}
-          </div>
-
-          <h1 className="fade-up-delay-1" style={{
-            fontSize: "clamp(2.8rem, 7vw, 5.5rem)",
-            fontWeight: "800", lineHeight: "1.05",
-            color: "#f5f5f5", marginBottom: "1.75rem",
-            letterSpacing: "-0.02em",
-          }}>
-            Verifiable Trust For{" "}<br/>
-            <span style={{
-              background: "linear-gradient(135deg, #f59e0b 0%, #7c3aed 100%)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}>Autonomous Coordination</span>
-          </h1>
-
-          <p className="fade-up-delay-2" style={{
-            fontSize: "1.1rem", color: "#cfcfcf",
-            maxWidth: "540px", margin: "0 auto 1.25rem",
-            lineHeight: "1.8",
-          }}>
-            Built on Ritual to help autonomous systems evaluate counterparties before they act.
-          </p>
-
-          <p className="fade-up-delay-3" style={{
-            fontSize: "0.95rem", color: "#b0b0b0",
-            maxWidth: "500px", margin: "0 auto 3.5rem",
-            lineHeight: "1.7",
-          }}>
-            Omen transforms onchain behavior into verifiable trust signals that agents, wallets, and autonomous systems can understand.
-          </p>
-
-          <div className="fade-up-delay-4" style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/check" className="btn-primary" style={{
-              background: "linear-gradient(135deg, #f59e0b, #d97706)",
-              color: "#0a0a0a", padding: "13px 32px",
-              borderRadius: "8px", fontWeight: "700",
-              fontSize: "14px", textDecoration: "none",
-              letterSpacing: "0.02em",
-            }}>
-              Run Trust Check →
-            </Link>
-            <a href="/architecture" className="btn-secondary" style={{
-              background: "transparent", color: "#cfcfcf",
-              padding: "13px 32px", borderRadius: "8px",
-              fontWeight: "500", fontSize: "14px",
-              textDecoration: "none", border: "1px solid #333",
-            }}>
-              Explore Architecture
-            </a>
-          </div>
-
-          {/* Protocol flow visualization */}
-          <div className="fade-up-delay-5" style={{
-            marginTop: "4rem",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            gap: "0", flexWrap: "nowrap", overflowX: "auto",
-          }}>
-            {[
-              { label: "Onchain Activity", sub: "agent",      color: "#8a8a8a", icon: "◈" },
-              null,
-              { label: "Evidence Object",  sub: "merkle root · features",      color: "#f59e0b", icon: "⬡" },
-              null,
-              { label: "LLM Evaluation",   sub: "TEE attested · Ritual",       color: "#7c3aed", icon: "◎" },
-              null,
-              { label: "Trust Signal",     sub: "TRUSTED · REVOKED · PENDING", color: "#16a34a", icon: "✦" },
-            ].map((item, i) => {
-              if (!item) return (
-                <div key={i} style={{ display: "flex", alignItems: "center", padding: "0 4px" }}>
-                  <div style={{
-                    width: "32px", height: "1px",
-                    background: "linear-gradient(90deg, #2a2a2a, #3a3a3a, #2a2a2a)",
-                  }}/>
-                  <div style={{
-                    width: "4px", height: "4px",
-                    borderTop: "1px solid #3a3a3a",
-                    borderRight: "1px solid #3a3a3a",
-                    transform: "rotate(45deg)",
-                    marginLeft: "-3px",
-                  }}/>
-                </div>
-              );
-              return (
-                <div key={i} style={{
-                  display: "flex", flexDirection: "column",
-                  alignItems: "center", gap: "6px",
-                  padding: "12px 16px",
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid #1a1a1a",
-                  borderRadius: "10px",
-                  minWidth: "120px",
-                }}>
-                  <div style={{ fontSize: "16px", color: item.color }}>{item.icon}</div>
-                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#cfcfcf", whiteSpace: "nowrap" }}>{item.label}</div>
-                  <div style={{ fontSize: "9px", color: "#8a8a8a", whiteSpace: "nowrap", letterSpacing: "0.03em" }}>{item.sub}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 2rem 7rem" }}>
-          <div className="fade-up-delay-5" style={{
-            display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "1px", background: "#1a1a1a",
-            border: "1px solid #1a1a1a", borderRadius: "12px", overflow: "hidden",
-          }}>
-            {[
-              { label: "Current Block",   value: health?.block ? health.block.toLocaleString() : "—", accent: "#f59e0b" },
-              { label: "Network",         value: "Ritual · 1979", accent: "#7c3aed" },
-              { label: "Trust Domains",   value: "2 Active", accent: "#f59e0b" },
-              { label: "Protocol Status", value: health?.status === "ok" ? "Online" : "—", accent: "#16a34a" },
-            ].map(({ label, value, accent }) => (
-              <div key={label} style={{
-                background: "#0d0d0d", padding: "2rem 1.5rem", textAlign: "center",
-              }}>
-                <div style={{
-                  fontSize: "1.5rem", fontWeight: "700",
-                  color: accent, marginBottom: "0.4rem",
-                  fontFamily: "monospace", letterSpacing: "-0.02em",
-                }}>{value}</div>
-                <div style={{ fontSize: "11px", color: "#8a8a8a", letterSpacing: "0.06em" }}>{label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* How it works */}
-        <div id="architecture" style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 2rem 7rem" }}>
-          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
-            <div style={{ fontSize: "11px", color: "#8a8a8a", letterSpacing: "0.12em", marginBottom: "0.75rem" }}>
-              PROTOCOL ARCHITECTURE
-            </div>
-            <h2 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", letterSpacing: "-0.02em" }}>
-              How It Works
-            </h2>
-          </div>
-
-          <div style={{
-            display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "1px", background: "#1a1a1a",
-            borderRadius: "12px", overflow: "hidden", border: "1px solid #1a1a1a",
-          }}>
-            {[
-              { step: "01", title: "Collect Evidence",  desc: "Omen gathers behavioral and onchain signals relevant to trust evaluation.", icon: "◈", color: "#f59e0b" },
-              { step: "02", title: "Evaluate Trust",    desc: "Ritual-powered intelligence analyzes evidence and produces a verifiable trust signal.", icon: "⬡", color: "#7c3aed" },
-              { step: "03", title: "Coordinate Safely", desc: "Agents, wallets, and applications consume trust signals before taking action.", icon: "◎", color: "#16a34a" },
-            ].map(({ step, title, desc, icon, color }) => (
-              <div key={step} className="card-hover" style={{
-                background: "#0d0d0d", padding: "2.5rem 2rem",
-                position: "relative", cursor: "default",
-              }}>
-                <div style={{ fontSize: "2rem", marginBottom: "1.25rem", color, opacity: 0.8 }}>{icon}</div>
-                <div style={{ fontSize: "10px", fontWeight: "700", color: "#8a8a8a", letterSpacing: "0.12em", marginBottom: "0.5rem" }}>
-                  STEP {step}
-                </div>
-                <div style={{ fontSize: "1rem", fontWeight: "600", color: "#f5f5f5", marginBottom: "0.75rem" }}>{title}</div>
-                <div style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.7" }}>{desc}</div>
-                <div style={{
-                  position: "absolute", bottom: "1.5rem", right: "1.5rem",
-                  fontSize: "11px", color, fontFamily: "monospace", opacity: 0.3,
-                }}>{step}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Trust Domains */}
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 2rem 7rem" }}>
-          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
-            <div style={{ fontSize: "11px", color: "#8a8a8a", letterSpacing: "0.12em", marginBottom: "0.75rem" }}>
-              EVALUATION LAYER
-            </div>
-            <h2 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", letterSpacing: "-0.02em" }}>
-              Trust Domains
-            </h2>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem" }}>
-            {[
-              { id: "counterparty_trust.ritual_trade_v1", name: "Counterparty Trust", question: "Should an autonomous system coordinate with this counterparty?", color: "#f59e0b" },
-              { id: "agent_safety.ritual_infernet_v1",    name: "Agent Safety",       question: "Should this agent be allowed to operate independently?",          color: "#7c3aed" },
-            ].map(({ id, name, question, color }) => (
-              <div key={id} className="card-hover" style={{
-                background: "#0d0d0d", border: "1px solid #1a1a1a",
-                borderRadius: "12px", padding: "2rem",
-                position: "relative", overflow: "hidden", cursor: "default",
-              }}>
-                <div style={{
-                  position: "absolute", top: 0, left: 0, right: 0, height: "2px",
-                  background: `linear-gradient(90deg, ${color}, transparent)`,
-                }}/>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
-                  <div style={{ fontSize: "1.05rem", fontWeight: "600", color: "#f5f5f5" }}>{name}</div>
-                  <span style={{
-                    fontSize: "10px", padding: "2px 8px", borderRadius: "4px",
-                    background: "rgba(22,163,74,0.08)", color: "#16a34a",
-                    border: "1px solid rgba(22,163,74,0.2)", fontWeight: "600",
-                    letterSpacing: "0.05em",
-                  }}>ACTIVE</span>
-                </div>
-                <div style={{ fontSize: "11px", color: "#8a8a8a", fontFamily: "monospace", marginBottom: "1rem" }}>{id}</div>
-                <div style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.7", marginBottom: "1.5rem" }}>{question}</div>
-                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                  {["TRUSTED", "PENDING", "REVOKED", "UNSEEN"].map(v => (
-                    <span key={v} style={{
-                      fontSize: "10px", padding: "3px 10px", borderRadius: "4px",
-                      background: v === "TRUSTED" ? "rgba(22,163,74,0.08)" : v === "REVOKED" ? "rgba(220,38,38,0.08)" : v === "PENDING" ? "rgba(245,158,11,0.08)" : "rgba(102,102,102,0.08)",
-                      color: v === "TRUSTED" ? "#16a34a" : v === "REVOKED" ? "#dc2626" : v === "PENDING" ? "#f59e0b" : "#8a8a8a",
-                      border: `1px solid ${v === "TRUSTED" ? "rgba(22,163,74,0.2)" : v === "REVOKED" ? "rgba(220,38,38,0.2)" : v === "PENDING" ? "rgba(245,158,11,0.2)" : "rgba(102,102,102,0.2)"}`,
-                      fontWeight: "600", letterSpacing: "0.05em",
-                    }}>{v}</span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-              {/* Why Ritual */}
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 2rem 4rem" }}>
-          <div style={{
-            background: "#0d0d0d", border: "1px solid #1a1a1a",
-            borderRadius: "12px", padding: "1.5rem",
-          }}>
-            <div style={{ fontSize: "11px", color: "#7c3aed", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "1rem" }}>
-              WHY OMEN RUNS ON RITUAL
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "0.75rem" }}>
-              {[
-                { label: "Scheduler (0x080C)",      desc: "Autonomous agent execution",         color: "#f59e0b" },
-                { label: "LLM Precompile (0x0802)", desc: "TEE-attested inference",             color: "#7c3aed" },
-                { label: "TEE Attestation",         desc: "Cryptographic proof of model",       color: "#7c3aed" },
-                { label: "Sovereign Agents",        desc: "No keeper, no external dependency",  color: "#16a34a" },
-                { label: "Trust-Aware Execution",   desc: "TRUSTED → proceed · REVOKED → deny", color: "#f59e0b" },
-              ].map(({ label, desc, color }) => (
-                <div key={label} style={{
-                  background: "#111", border: `1px solid ${color}22`,
-                  borderRadius: "8px", padding: "0.875rem",
-                }}>
-                  <div style={{ fontSize: "10px", fontWeight: "700", color, marginBottom: "4px", letterSpacing: "0.04em" }}>✓ {label}</div>
-                  <div style={{ fontSize: "11px", color: "#8a8a8a", lineHeight: "1.5" }}>{desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        {/* Why Omen */}
-        <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "0 2rem 7rem" }}>
-          <div style={{
-            background: "linear-gradient(135deg, rgba(245,158,11,0.04) 0%, rgba(124,58,237,0.04) 100%)",
-            border: "1px solid #1a1a1a", borderRadius: "16px",
-            padding: "4rem 3rem", textAlign: "center",
-            position: "relative", overflow: "hidden",
-          }}>
-            <div style={{
-              position: "absolute", top: "50%", left: "50%",
-              transform: "translate(-50%,-50%)",
-              width: "500px", height: "300px",
-              background: "radial-gradient(ellipse, rgba(124,58,237,0.06) 0%, transparent 70%)",
-              pointerEvents: "none",
-            }}/>
-            <div style={{ fontSize: "11px", color: "#8a8a8a", letterSpacing: "0.12em", marginBottom: "1.25rem" }}>
-              WHY OMEN
-            </div>
-            <h3 style={{
-              fontSize: "1.9rem", fontWeight: "700",
-              color: "#f5f5f5", marginBottom: "1.25rem",
-              letterSpacing: "-0.02em", lineHeight: "1.2",
-            }}>
-              Intelligence decides what to do.{" "}
-              <span style={{
-                background: "linear-gradient(135deg, #f59e0b, #7c3aed)",
-                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-              }}>Trust decides who to do it with.</span>
-            </h3>
-            <p style={{
-              fontSize: "14px", color: "#b0b0b0", lineHeight: "1.8",
-              maxWidth: "460px", margin: "0 auto 2.5rem",
-            }}>
-              Built for agents, applications, and autonomous systems operating on Ritual.
+    <main className="trust-home">
+      <section className="trust-shell">
+        <div className="trust-hero-panel">
+          <div className="trust-hero-copy">
+            <p className="mono-kicker">
+              <span className={health?.status === "ok" ? "live-dot online" : "live-dot"} />
+              OmenRegistry · Ritual 1979 · block {block}
             </p>
-            <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-              <Link href="/demo" className="btn-primary" style={{
-                background: "linear-gradient(135deg, #f59e0b, #d97706)",
-                color: "#0a0a0a", padding: "12px 28px",
-                borderRadius: "8px", fontWeight: "700",
-                fontSize: "14px", textDecoration: "none",
-              }}>
-                View Demo →
-              </Link>
-              <Link href="/agents" className="btn-secondary" style={{
-                background: "transparent", color: "#cfcfcf",
-                padding: "12px 28px", borderRadius: "8px",
-                fontWeight: "500", fontSize: "14px",
-                textDecoration: "none", border: "1px solid #333",
-              }}>
-                View Agents
-              </Link>
-            </div>
+            <h1>Check trust before coordinating.</h1>
+            <p>
+              Omen helps users and agents verify wallets, contracts, agents, and autonomous systems before taking action.
+            </p>
           </div>
+
+          <form className="trust-check-card" onSubmit={checkTrust}>
+            <div className="field-row">
+              <label htmlFor="subject">Address</label>
+              <input
+                id="subject"
+                value={subject}
+                onChange={(event) => setSubject(event.target.value)}
+                placeholder="0x... wallet, agent, contract, or autonomous system"
+                spellCheck={false}
+              />
+            </div>
+            <div className="field-grid">
+              <div className="field-row">
+                <label htmlFor="domain">Trust Domain</label>
+                <select id="domain" value={domain} onChange={(event) => setDomain(event.target.value)}>
+                  {domains.map((item) => (
+                    <option value={item.value} key={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button className="trust-submit" type="submit" disabled={loading}>
+                {loading ? <RefreshCw size={18} className="spin-icon" /> : <Search size={18} />}
+                {loading ? "Checking" : "Check Trust"}
+              </button>
+            </div>
+            <div className="source-strip">
+              <Database size={15} />
+              Source: OmenRegistry
+              <span>{shortAddress(registry)}</span>
+            </div>
+          </form>
         </div>
 
-        {/* Footer */}
-        <div style={{
-          maxWidth: "1100px", margin: "0 auto",
-          padding: "0 2rem 3rem", borderTop: "1px solid #1a1a1a",
-        }}>
-          <div style={{
-            paddingTop: "2rem", display: "flex",
-            justifyContent: "space-between", alignItems: "center",
-            flexWrap: "wrap", gap: "1rem",
-          }}>
-            <div>
-              <div style={{ fontSize: "13px", color: "#8a8a8a", marginBottom: "4px" }}>
-                Trust Infrastructure For Autonomous Systems
-              </div>
-              <div style={{ fontSize: "11px", color: "#8a8a8a" }}>Built on Ritual Chain</div>
+        {error && (
+          <div className="trust-error" role="alert">
+            <AlertTriangle size={18} />
+            {error}
+          </div>
+        )}
+
+        <div className="result-grid">
+          <section className={`result-card ${statusClass[resultStatus] || "unseen"}`}>
+            <div className="panel-heading">
+              <span>Trust Signal</span>
+              <ShieldCheck size={19} />
             </div>
-            <div style={{ display: "flex", gap: "1.5rem" }}>
-              {[
-                { label: "OmenJudgment", addr: health?.contracts?.judgment },
-                { label: "OmenRegistry", addr: health?.contracts?.registry },
-              ].map(({ label, addr }) => (
-                <div key={label} style={{ fontSize: "11px", color: "#8a8a8a" }}>
-                  {label}: <span style={{ color: "#b0b0b0", fontFamily: "monospace" }}>
-                    {addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "—"}
-                  </span>
-                </div>
+            <strong>{result?.verdict.value || "UNSEEN"}</strong>
+            <p>{result ? result.subject : "Paste an address to read its current OmenRegistry state."}</p>
+            <div className="result-meta-grid">
+              <div>
+                <span>Recommended Action</span>
+                <b>{result?.recommendedAction || "Build Signal"}</b>
+              </div>
+              <div>
+                <span>Fresh</span>
+                <b>{result ? (result.verdict.isFresh ? "Yes" : "No") : "No"}</b>
+              </div>
+              <div>
+                <span>Source</span>
+                <b>{result?.source || "OmenRegistry"}</b>
+              </div>
+              <div>
+                <span>Updated</span>
+                <b>{result ? formatTimestamp(result.verdict.timestamp) : "No record"}</b>
+              </div>
+            </div>
+            {result?.explorer && (
+              <a className="explorer-link" href={result.explorer} target="_blank" rel="noreferrer">
+                View registry <ExternalLink size={15} />
+              </a>
+            )}
+          </section>
+
+          <section className="explain-card">
+            <div className="panel-heading">
+              <span>Explain Result</span>
+              <ArrowRight size={19} />
+            </div>
+            <p>{result?.explanation || "Omen reads the registry first. If no fresh signal exists, the safe action is to build or refresh the signal before coordinating."}</p>
+            <div className="explain-flow">
+              <span>Paste Address</span>
+              <ArrowRight size={14} />
+              <span>Read Registry</span>
+              <ArrowRight size={14} />
+              <span>Decide</span>
+            </div>
+            <Link className="builder-link" href="/builder">
+              Build a signal <ArrowRight size={15} />
+            </Link>
+          </section>
+        </div>
+
+        <section className="activity-panel">
+          <div className="activity-header">
+            <div>
+              <p className="mono-kicker">Recent Trust Activity</p>
+              <h2>Real events only.</h2>
+            </div>
+            <button type="button" className="refresh-button" onClick={() => void loadActivity()} disabled={activityLoading}>
+              <RefreshCw size={16} className={activityLoading ? "spin-icon" : ""} />
+              Refresh
+            </button>
+          </div>
+
+          {activityLoading && <div className="empty-activity">Reading Ritual events...</div>}
+
+          {!activityLoading && (!activity || activity.items.length === 0) && (
+            <div className="empty-activity">
+              <Activity size={22} />
+              No recent trust activity found from OmenRegistry, OmenJudgment, or OmenAgentAware in the current event window.
+            </div>
+          )}
+
+          {!activityLoading && activity && activity.items.length > 0 && (
+            <div className="activity-list">
+              {activity.items.map((item) => (
+                <a className="activity-row" href={item.explorer} target="_blank" rel="noreferrer" key={item.id}>
+                  <div className={`activity-status ${statusClass[item.status] || "unseen"}`}>{item.status}</div>
+                  <div>
+                    <strong>
+                      {item.source} · {item.type}
+                    </strong>
+                    <span>
+                      {shortAddress(item.subject)} · {item.domain}
+                    </span>
+                  </div>
+                  <div className="activity-tail">
+                    <span>#{item.blockNumber.toLocaleString()}</span>
+                    <ExternalLink size={14} />
+                  </div>
+                </a>
               ))}
             </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
+          )}
+        </section>
+      </section>
+    </main>
   );
 }
