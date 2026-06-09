@@ -9,7 +9,16 @@ const SUBJECTS = [
   { address: "0x0000000000000000000000000000000000000b0b", label: "Agent Safety Subject", domain: "agent_safety.ritual_infernet_v1", action: "execute", expected: "REVOKED", description: "Dedicated agent safety benchmark" },
 ];
 
-const VSTYLE: any = {
+type TrustStyle = { color: string; bg: string; border: string };
+type TrustResponse = {
+  error?: string;
+  latency?: number;
+  verdict?: { value?: string; action?: string };
+  handshake?: { allowed?: boolean; reason?: string };
+};
+type DemoStats = { total: number; avg: number; runs: number };
+
+const VSTYLE: Record<string, TrustStyle> = {
   TRUSTED: { color: "#16a34a", bg: "rgba(22,163,74,0.1)",   border: "rgba(22,163,74,0.3)"   },
   REVOKED: { color: "#dc2626", bg: "rgba(220,38,38,0.1)",   border: "rgba(220,38,38,0.3)"   },
   PENDING: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.3)"  },
@@ -172,7 +181,7 @@ function DemoStep1() {
   return (
     <StepShell step="STEP 01" title="What is Omen?">
       <p style={{ fontSize: "15px", color: "#b0b0b0", lineHeight: "1.8", marginBottom: "2rem" }}>
-        Omen transforms onchain activity into verifiable trust signals that agents can use before acting.
+        Omen lets agents read registry-backed trust signals from OmenRegistry before acting.
       </p>
       <div style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: "12px", padding: "1.5rem", marginBottom: "1.5rem" }}>
         <div style={{ fontSize: "11px", color: "#555", letterSpacing: "0.08em", marginBottom: "1rem" }}>THE FULL FLOW</div>
@@ -185,7 +194,7 @@ function DemoStep1() {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
         {[
-          { label: "Verifiable", desc: "Merkle-committed evidence. Anyone can verify." },
+          { label: "Registry-backed", desc: "Signals are stored as inspectable onchain registry records." },
           { label: "Bounded",    desc: "5 states. 5 actions. No interpretation needed." },
           { label: "Onchain",    desc: "Trust signals stored permanently on Ritual." },
         ].map(({ label, desc }) => (
@@ -234,7 +243,7 @@ function DemoStep2() {
         textAlign: "center",
       }}>
         <div style={{ fontSize: "1.5rem", fontWeight: "800", color: "#16a34a" }}>EXECUTE ACTION ✓</div>
-        <div style={{ fontSize: "12px", color: "#8a8a8a", marginTop: "4px" }}>Agent proceeds with autonomous execution</div>
+        <div style={{ fontSize: "12px", color: "#8a8a8a", marginTop: "4px" }}>Agent proceeds with the action</div>
       </div>
     </StepShell>
   );
@@ -275,7 +284,7 @@ function DemoStep3() {
         textAlign: "center",
       }}>
         <div style={{ fontSize: "1.5rem", fontWeight: "800", color: "#dc2626" }}>DENY EXECUTION ✕</div>
-        <div style={{ fontSize: "12px", color: "#8a8a8a", marginTop: "4px" }}>Agent rejects autonomous execution</div>
+        <div style={{ fontSize: "12px", color: "#8a8a8a", marginTop: "4px" }}>Agent rejects the action</div>
       </div>
     </StepShell>
   );
@@ -285,7 +294,7 @@ function DemoStep4() {
   return (
     <StepShell step="STEP 04" title="Agent-Aware Execution">
       <p style={{ fontSize: "14px", color: "#b0b0b0", lineHeight: "1.7", marginBottom: "1.5rem" }}>
-        OmenAgentAware queries OmenRegistry before every autonomous action. The trust signal determines what happens next.
+        OmenAgentAware can query OmenRegistry before an agent action. The trust signal determines what happens next.
       </p>
       <div style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: "12px", padding: "1.5rem", marginBottom: "1.5rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem" }}>
@@ -325,20 +334,20 @@ function DemoStep5() {
         <div style={{ background: "rgba(220,38,38,0.05)", border: "1px solid rgba(220,38,38,0.15)", borderRadius: "10px", padding: "1.5rem" }}>
           <div style={{ fontSize: "11px", color: "#dc2626", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>WITHOUT OMEN</div>
           <p style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.7", margin: 0 }}>
-            Agents execute blindly. No shared trust layer. No verifiable reasoning. No way to prove why a decision was made.
+            Agents execute blindly. No shared trust layer. No registry-backed reason for why a decision was made.
           </p>
         </div>
         <div style={{ background: "rgba(22,163,74,0.05)", border: "1px solid rgba(22,163,74,0.15)", borderRadius: "10px", padding: "1.5rem" }}>
           <div style={{ fontSize: "11px", color: "#16a34a", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>WITH OMEN</div>
           <p style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.7", margin: 0 }}>
-            Agents verify trust before acting. TRUSTED → Execute. REVOKED → Deny. Shared trust signals enable safer autonomous coordination.
+            Agents check trust before acting. TRUSTED → Execute. REVOKED → Deny. Shared trust signals support safer autonomous coordination.
           </p>
         </div>
       </div>
       <div style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: "10px", padding: "1.25rem" }}>
         <div style={{ fontSize: "11px", color: "#7c3aed", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>BUILT FOR RITUAL AGENTS</div>
         <p style={{ fontSize: "13px", color: "#8a8a8a", lineHeight: "1.7", margin: 0 }}>
-          Omen enables agents to decide whether to proceed or reject an action based on verifiable trust signals.
+          Omen enables agents to decide whether to proceed or reject an action based on registry-backed trust signals.
         </p>
       </div>
     </StepShell>
@@ -398,10 +407,10 @@ function DemoStep6({ onExit }: { onExit: () => void }) {
 
 export default function DemoLab() {
   const [demoMode, setDemoMode] = useState(false);
-  const [results, setResults]   = useState<any>({});
+  const [results, setResults]   = useState<Record<string, TrustResponse>>({});
   const [loading, setLoading]   = useState<string | null>(null);
   const [runAll, setRunAll]     = useState(false);
-  const [stats, setStats]       = useState<any>(null);
+  const [stats, setStats]       = useState<DemoStats | null>(null);
   const [metrics, setMetrics]   = useState({ checks: 0, allowed: 0, denied: 0 });
 
   const runHandshake = async (subject: typeof SUBJECTS[0]) => {
@@ -413,13 +422,13 @@ export default function DemoLab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject: subject.address, domain: subject.domain, action: subject.action }),
       });
-      const d = await r.json();
+      const d = await r.json() as TrustResponse;
       const latency = Date.now() - start;
       const isAllowed = d.handshake?.allowed;
       setMetrics(prev => ({ checks: prev.checks + 1, allowed: prev.allowed + (isAllowed ? 1 : 0), denied: prev.denied + (!isAllowed ? 1 : 0) }));
-      setResults((prev: any) => ({ ...prev, [subject.address]: { ...d, latency } }));
+      setResults((prev) => ({ ...prev, [subject.address]: { ...d, latency } }));
     } catch {
-      setResults((prev: any) => ({ ...prev, [subject.address]: { verdict: { value: subject.expected }, handshake: { allowed: subject.expected === "TRUSTED", reason: "cached" }, latency: Date.now() - start } }));
+      setResults((prev) => ({ ...prev, [subject.address]: { verdict: { value: subject.expected }, handshake: { allowed: subject.expected === "TRUSTED", reason: "cached" }, latency: Date.now() - start } }));
     }
     setLoading(null);
   };
@@ -516,7 +525,7 @@ export default function DemoLab() {
                     <div style={{ fontSize: "11px", color: "#444" }}>{subject.domain}</div>
                   </div>
                   <button
-                    onClick={() => { setResults((prev: any) => { const n = {...prev}; delete n[subject.address]; return n; }); runHandshake(subject); }}
+                    onClick={() => { setResults((prev) => { const n = {...prev}; delete n[subject.address]; return n; }); runHandshake(subject); }}
                     disabled={isLoading}
                     style={{ background: "rgba(124,58,237,0.15)", border: "1px solid rgba(124,58,237,0.3)", color: "#7c3aed", padding: "6px 14px", borderRadius: "6px", fontSize: "12px", fontWeight: "500", cursor: "pointer", opacity: isLoading ? 0.5 : 1 }}
                   >
@@ -563,16 +572,16 @@ export default function DemoLab() {
           <div style={{ marginTop: "1.25rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
             <div style={{ background: "rgba(220,38,38,0.05)", border: "1px solid rgba(220,38,38,0.15)", borderRadius: "10px", padding: "1.25rem" }}>
               <div style={{ fontSize: "11px", color: "#dc2626", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>WITHOUT OMEN</div>
-              <div style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.6" }}>Agents execute blindly. No verification. No shared trust layer.</div>
+              <div style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.6" }}>Agents execute blindly. No registry check. No shared trust layer.</div>
             </div>
             <div style={{ background: "rgba(22,163,74,0.05)", border: "1px solid rgba(22,163,74,0.15)", borderRadius: "10px", padding: "1.25rem" }}>
               <div style={{ fontSize: "11px", color: "#16a34a", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>WITH OMEN</div>
-              <div style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.6" }}>Agents verify trust before acting. TRUSTED → Execute. REVOKED → Deny.</div>
+              <div style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.6" }}>Agents check trust before acting. TRUSTED → Execute. REVOKED → Deny.</div>
             </div>
           </div>
           <div style={{ marginTop: "1rem", padding: "1rem 1.25rem", background: "rgba(124,58,237,0.04)", border: "1px solid rgba(124,58,237,0.12)", borderRadius: "8px" }}>
             <p style={{ fontSize: "12px", color: "#8a8a8a", lineHeight: "1.7", margin: 0 }}>
-              Omen enables agents to decide whether to proceed or reject an action based on verifiable trust signals.
+              Omen enables agents to decide whether to proceed or reject an action based on registry-backed trust signals.
             </p>
           </div>
         </div>
@@ -601,15 +610,15 @@ function AgentDemo({ onDecision }: { onDecision: (allowed: boolean) => void }) {
     { label: "Flagged Address",    address: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c", expected: "REVOKED", description: "Flagged interactions, excessive approvals" },
   ];
 
-  const [selected, setSelected] = useState<any>(null);
+  const [selected, setSelected] = useState<(typeof SCENARIOS)[number] | null>(null);
   const [simState, setSimState] = useState<"idle"|"checking"|"decided">("idle");
-  const [signal, setSignal]     = useState<any>(null);
+  const [signal, setSignal]     = useState<TrustResponse | null>(null);
   const [decided, setDecided]   = useState(false);
 
   const runSim = async (scenario: typeof SCENARIOS[0]) => {
     setSelected(scenario); setSimState("checking"); setSignal(null); setDecided(false);
     const r = await fetch("/api/verdict/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject: scenario.address, domain: "counterparty_trust.ritual_trade_v1", action: "trade" }) });
-    const d = await r.json();
+    const d = await r.json() as TrustResponse;
     const corrected = { ...d, verdict: { ...d.verdict, value: scenario.expected, action: scenario.expected === "TRUSTED" ? "Execution allowed" : "Execution denied" }, handshake: { ...d.handshake, allowed: scenario.expected === "TRUSTED", reason: scenario.expected === "TRUSTED" ? "Clean activity profile, trusted counterparty" : "Flagged interactions or excessive unbounded approvals" } };
     setSignal(corrected);
     await new Promise(res => setTimeout(res, 800));
@@ -667,7 +676,7 @@ function AgentDemo({ onDecision }: { onDecision: (allowed: boolean) => void }) {
               <div style={{ padding: "1.5rem", borderRadius: "10px", textAlign: "center", background: isTrusted ? "rgba(22,163,74,0.06)" : "rgba(220,38,38,0.06)", border: `1px solid ${isTrusted ? "rgba(22,163,74,0.25)" : "rgba(220,38,38,0.25)"}` }}>
                 <div style={{ fontSize: "10px", fontWeight: "700", letterSpacing: "0.12em", color: "#8a8a8a", marginBottom: "0.5rem" }}>AGENT DECISION</div>
                 <div style={{ fontSize: "2rem", fontWeight: "800", letterSpacing: "-0.02em", color: isTrusted ? "#16a34a" : "#dc2626", marginBottom: "0.5rem" }}>{isTrusted ? "EXECUTE ACTION ✓" : "DENY EXECUTION ✕"}</div>
-                <div style={{ fontSize: "13px", color: "#8a8a8a", marginBottom: "1.25rem" }}>{isTrusted ? "Result: Agent proceeds with autonomous execution." : "Result: Agent rejects autonomous execution."}</div>
+                <div style={{ fontSize: "13px", color: "#8a8a8a", marginBottom: "1.25rem" }}>{isTrusted ? "Result: Agent proceeds with the action." : "Result: Agent rejects the action."}</div>
                 <button onClick={reset} style={{ background: "transparent", border: "1px solid #333", borderRadius: "6px", padding: "6px 16px", color: "#8a8a8a", fontSize: "12px", cursor: "pointer" }}>Run another scenario →</button>
               </div>
             </div>

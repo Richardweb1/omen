@@ -6,7 +6,6 @@ import ConnectWallet from "@/components/ConnectWallet";
 
 const links = [
   { href: "/", label: "Home" },
-  { href: "/builder", label: "Builder" },
 ];
 
 export default function Nav() {

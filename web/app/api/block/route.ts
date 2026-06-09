@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, defineChain, http } from "viem";
 
-const ritualChain = {
+const ritualChain = defineChain({
   id: 1979,
   name: "Ritual",
   nativeCurrency: { name: "RITUAL", symbol: "RITUAL", decimals: 18 },
   rpcUrls: { default: { http: ["https://rpc.ritualfoundation.org"] } },
-};
+});
 
 const client = createPublicClient({
-  chain: ritualChain as any,
+  chain: ritualChain,
   transport: http("https://rpc.ritualfoundation.org"),
 });
 
@@ -17,7 +17,7 @@ export async function GET() {
   try {
     const block = await client.getBlockNumber();
     return NextResponse.json({ block: Number(block) });
-  } catch (e: any) {
-    return NextResponse.json({ block: null, error: e.message }, { status: 500 });
+  } catch (e) {
+    return NextResponse.json({ block: null, error: e instanceof Error ? e.message : "Block lookup failed" }, { status: 500 });
   }
 }

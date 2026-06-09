@@ -1,20 +1,18 @@
 # Omen
 
-**Trust infrastructure for Ritual agents, wallets, contracts, and autonomous systems.**
+Omen is trust infrastructure for autonomous Ritual agents. It lets users check registry-backed trust signals and mint Ritual-registered Trust Receipts that capture the trust state at mint time.
 
-Omen helps users and agents check trust before coordinating.
-
-Before interacting with an address, contract, agent, or autonomous system:
+Omen helps users and agents check trust before coordinating:
 
 ```text
 Paste Address
--> Check Trust
 -> Read OmenRegistry
--> Understand Risk
+-> Understand Result
 -> Decide What To Do
+-> Mint Trust Receipt when a real registry record exists
 ```
 
-Omen is not a chatbot, reputation score, or marketing dashboard. It is a focused Ritual-native trust layer that reads and writes bounded trust signals onchain.
+Omen is not a chatbot, reputation score, blacklist, AI oracle, identity system, reward program, or NFT marketplace. It is a focused Ritual testnet product for reading registry-backed trust state and recording wallet-signed trust snapshots.
 
 Live: [omen-ritual.vercel.app](https://omen-ritual.vercel.app)  
 GitHub: [github.com/Richardweb1/omen](https://github.com/Richardweb1/omen)  
@@ -22,53 +20,20 @@ Chain: Ritual testnet, chain ID `1979`
 
 ---
 
-## Product
+## Product Flow
 
-Omen has two primary pages.
+The active product lives on Home (`/`).
 
-### 1. Home
+1. Paste an address.
+2. Omen reads `OmenRegistry`.
+3. The user sees trust status, explanation, source, freshness, and recommended action.
+4. If a real registry record exists, the user can mint an Omen Trust Receipt.
+5. `OmenTrustReceipt` reads `OmenRegistry` during mint.
+6. The receipt NFT is minted on Ritual `1979` as an onchain trust snapshot.
 
-The homepage is the main product experience.
+Read/check actions do not require a wallet. Write actions, including building trust signals and minting Trust Receipts, require a connected wallet on Ritual `1979`.
 
-It lets a user paste any address and read real trust state from `OmenRegistry`.
-
-Supported subjects:
-
-- Wallets
-- Agents
-- Contracts
-- Autonomous systems
-
-The result shows:
-
-- Trust signal
-- Recommended action
-- Explanation
-- Source
-- Freshness
-- Optional explorer link
-- Recent trust activity
-
-The homepage does not fabricate verdicts. If `OmenRegistry` has no record, Omen shows `UNSEEN`. If a record exists but is stale, Omen shows `LAPSED`.
-
-### 2. Builder
-
-Builder is the onchain write path.
-
-It lets a connected wallet create trust signals on Ritual.
-
-Builder requirements:
-
-- User connects wallet
-- User is on Ritual chain `1979`
-- User provides evidence feature values
-- User signs `submitSignal`
-- User signs `evaluateDeterministic`
-- User pays gas
-- Transaction hashes and explorer links are displayed
-- Final result is read back from `OmenRegistry`
-
-There is no backend wallet signing in the primary product flow.
+The Home page does not fabricate verdicts. If `OmenRegistry` has no record, Omen shows `UNSEEN`/no record and disables receipt minting. If a record exists but is stale, Omen shows `LAPSED` and labels the receipt as stale at mint.
 
 ---
 
@@ -88,22 +53,49 @@ Contract note: the deployed contracts use enum value `1` as `SEALED`; the produc
 
 ---
 
-## Where Trust Comes From
+## Omen Trust Receipt
 
-Omen reads the registry first.
+An Omen Trust Receipt is an ERC721 NFT deployed on Ritual `1979`.
 
-The current trust-check API calls:
+It means:
 
-- `OmenRegistry.readVerdict(subject, domain)`
-- `OmenRegistry.previewHandshake(subject, domain, action)`
+```text
+At the time this receipt was minted, this subject had this registry state according to OmenRegistry.
+```
 
-The frontend displays:
+`OmenTrustReceipt`:
 
-- `Source: OmenRegistry`
-- `Fresh: Yes / No`
-- A simple explanation based on the registry state
+- Reads `OmenRegistry` directly during `mint(subject, domain)`
+- Stores a snapshot of the registry-backed trust state
+- Stores subject, domain, status, registry address, chain ID, mint block, registry timestamp, minted time, freshness, and minter
+- Blocks minting if no registry record exists
+- Emits `TrustReceiptMinted`
+- Provides token metadata that describes the receipt as a registry-backed snapshot
 
-Omen does not derive trust from address hashing in the Home trust check.
+It does not represent permanent trust. It does not guarantee safety. It is not an identity NFT, reputation score, blacklist, reward badge, or proof protocol.
+
+Always re-check `OmenRegistry` before acting.
+
+---
+
+## Deployed Contracts
+
+| Contract | Address | Role |
+|---|---|---|
+| `OmenRegistry` | `0xCbB34EB8651dc8f1d65a20165C1166C13f626620` | Compact trust mirror and read path |
+| `OmenTrustReceipt` | `0x6E010B72337907D24eA6edcA4e27652e8bF4E397` | ERC721 trust snapshot receipt |
+| `OmenJudgment` | `0xc32a1e26e77664753b4A54a4312dF0a8159147D0` | Evidence intake, verdict issuance, revision history |
+| `OmenAgentAware` | `0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295` | Agent-aware contract support that checks registry state |
+
+Explorer: [explorer.ritualfoundation.org](https://explorer.ritualfoundation.org)
+
+Successful Trust Receipt mint example:
+
+- Token ID: `1`
+- Mint transaction: [`0x21ec363204667febaae8b661500f8f96209ec0ebb32db32df54423e5d3ce14d3`](https://explorer.ritualfoundation.org/tx/0x21ec363204667febaae8b661500f8f96209ec0ebb32db32df54423e5d3ce14d3)
+- Demo/test subject: `0x8A5E192Dee78097D96fEdDf7f61b1Ab17A712234`
+
+The demo/test subject is not a safety guarantee. It is only an address with real OmenRegistry records that can be used to exercise the product flow.
 
 ---
 
@@ -117,9 +109,7 @@ It reads real events only from:
 - `OmenJudgment.VerdictIssued`
 - `OmenAgentAware.HandshakeExecuted`
 
-If no recent events are found, Omen displays an honest empty state.
-
-The feed never fabricates activity.
+If no recent events are found, Omen displays an honest empty state. The feed never fabricates activity.
 
 ---
 
@@ -129,29 +119,17 @@ The feed never fabricates activity.
 
 Question: should this wallet or counterparty be trusted before coordination?
 
-Evidence fields used by Builder:
-
-- `tx_count`
-- `failed_tx`
-- `unique_counterparties`
-- `unbounded_approvals`
-- `flagged_interactions`
-
 ### `agent_safety.ritual_infernet_v1`
 
 Question: should this agent be allowed to operate independently?
 
-Evidence fields used by Builder:
-
-- `action_count`
-- `failed_actions`
-- `unauthorized_attempts`
-- `model_changes`
-- `anomaly_score`
+This domain id is retained for deployed-contract compatibility. The active Home flow should not be described as a Ritual Infernet integration unless a future implementation wires Infernet into the active product.
 
 ---
 
 ## Architecture
+
+Read flow:
 
 ```text
 User / Agent
@@ -169,7 +147,24 @@ OmenRegistry
 Trust Signal -> Recommended Action -> Explanation
 ```
 
-Write flow:
+Trust Receipt mint flow:
+
+```text
+Connected Wallet
+  |
+  | signs mint(subject, domain)
+  v
+OmenTrustReceipt
+  |
+  | reads OmenRegistry during mint
+  v
+Stores receipt snapshot
+  |
+  v
+ERC721 Trust Receipt on Ritual 1979
+```
+
+Trust signal write flow:
 
 ```text
 Connected Wallet
@@ -186,36 +181,20 @@ OmenJudgment issues verdict
 OmenRegistry mirrors verdict
   |
   v
-Home and Builder read registry state
+Home reads registry state
 ```
 
 ---
 
-## Contracts on Ritual Testnet
+## Route Model
 
-| Contract | Address | Role |
-|---|---|---|
-| `OmenRegistry` | `0xCbB34EB8651dc8f1d65a20165C1166C13f626620` | Compact trust mirror and read path |
-| `OmenJudgment` | `0xc32a1e26e77664753b4A54a4312dF0a8159147D0` | Evidence intake, verdict issuance, revision history |
-| `OmenAgentAware` | `0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295` | Agent contract that checks registry before acting |
-| `OmenAgentDirect` | `0x7040235955B2D397d7CB717a300911Ec68644aFe` | Baseline direct-action agent |
-| `OmenJudgmentLLM` | `0x4d6f86B615e4B793B43BCd9868D0E3cBD7b64947` | Ritual LLM precompile evaluation contract |
-| `OmenSovereignAgent` | `0x3260dDe013d8c5130092B3DFB7d44DdD995da528` | Scheduler-driven signal refresh agent |
-| `OmenAuditGateway` | `0x2E1C8812F0b636579589A3bA1C0e64c1D9ED7f6f` | Older audit gateway, not part of primary product flow |
+Visible product route:
 
-Explorer: [explorer.ritualfoundation.org](https://explorer.ritualfoundation.org)
-
----
-
-## Current Route Model
-
-Visible product routes:
-
-- `/` - Home trust check and real activity feed
-- `/builder` - Wallet-signed signal creation
+- `/` - Complete trust check, receipt minting, build/refresh, re-check, and real activity feed
 
 Hidden routes retained for future reuse:
 
+- `/builder` - redirects to `/` for backward compatibility
 - `/check`
 - `/agents`
 - `/architecture`
@@ -232,10 +211,8 @@ Primary active APIs:
 
 - `POST /api/verdict/read` - reads real `OmenRegistry` data
 - `GET /api/activity` - reads real recent contract events
-- `POST /api/verdict/evaluate` - prepares wallet-signed Builder transaction data from user-provided feature values
-- `POST /api/signal/summary` - previews user-provided evidence
-- `POST /api/signal/build` - builds a signal object from user-provided evidence
-- `POST /api/rpc` - proxies Ritual JSON-RPC calls
+- `POST /api/verdict/evaluate` - prepares wallet-signed transaction data from bounded feature values
+- `POST /api/rpc` - proxies Ritual JSON-RPC calls for transaction confirmation
 - `GET /api/health` - reports Ritual status and contract addresses
 
 Disabled:
@@ -246,17 +223,17 @@ Disabled:
 
 ## Security Posture
 
-Omen's primary write flow is wallet-signed.
+Omen's primary write flows are wallet-signed.
 
-- No backend wallet signing for Builder
+- No backend wallet signing
 - No hidden signer for primary writes
 - No private key required for read-only Home checks
 - Read actions do not require wallet signatures
-- Write actions require connected wallet signatures
-- Builder requires Ritual chain `1979` before signing
-- Transaction hashes are checked against Ritual RPC during confirmation
-
-Environment files are ignored by git.
+- Write and mint actions require connected wallet signatures
+- Home requires Ritual chain `1979` before signing write transactions
+- `OmenTrustReceipt` reads `OmenRegistry` directly during mint
+- No-record addresses cannot mint Trust Receipts
+- Environment files are ignored by git
 
 ---
 
@@ -283,7 +260,13 @@ Open:
 http://localhost:3000
 ```
 
-For local Ritual configuration, use:
+For local public web configuration:
+
+```text
+NEXT_PUBLIC_OMEN_TRUST_RECEIPT_ADDRESS=0x6E010B72337907D24eA6edcA4e27652e8bF4E397
+```
+
+For local Ritual read configuration:
 
 ```text
 RITUAL_RPC_URL=https://rpc.ritualfoundation.org
@@ -292,7 +275,15 @@ OMEN_JUDGMENT_ADDRESS=0xc32a1e26e77664753b4A54a4312dF0a8159147D0
 OMEN_AGENT_AWARE_ADDRESS=0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295
 ```
 
-Do not expose private keys in frontend code.
+Do not expose private keys in frontend code or documentation.
+
+For hosted deployment on Vercel, set:
+
+```text
+NEXT_PUBLIC_OMEN_TRUST_RECEIPT_ADDRESS=0x6E010B72337907D24eA6edcA4e27652e8bF4E397
+```
+
+Vercel environment variable changes require a new deployment before they are available to the app.
 
 ---
 
@@ -303,51 +294,34 @@ omen/
   contracts/
     OmenRegistry.sol
     OmenJudgment.sol
+    OmenTrustReceipt.sol
     OmenAgentAware.sol
-    OmenAgentDirect.sol
-    OmenJudgmentLLM.sol
-    OmenSovereignAgent.sol
-    OmenAuditGateway.sol
   scripts/
     deploy.ts
+    deployReceipt.ts
     seed.ts
-    submit_tx.ts
-    startAgent.ts
   web/
     app/
       page.tsx
-      builder/page.tsx
       api/activity/route.ts
       api/verdict/read/route.ts
       api/verdict/evaluate/route.ts
-      api/signal/build/route.ts
-      api/signal/summary/route.ts
     components/
       Nav.tsx
       ConnectWallet.tsx
-      WalletProvider.tsx
+      InlineSignalBuilder.tsx
+      TrustReceiptMinter.tsx
     lib/
       contracts.ts
+      trustDomains.ts
 ```
-
----
-
-## What Makes Omen Different
-
-Omen keeps trust simple and inspectable.
-
-- It answers one question: should this subject be trusted before coordination?
-- It reads real registry state before presenting a verdict.
-- It produces bounded states instead of scores.
-- It explains the recommended action in plain language.
-- It lets users create trust signals through wallet-signed onchain transactions.
-- It creates recurring value through real trust events, not fabricated feeds.
 
 ---
 
 ## Known Notes
 
-- Some seeded registry signals may appear as `LAPSED` if they are no longer fresh.
+- Some registry signals may appear as `LAPSED` if they are no longer fresh.
+- A stale Trust Receipt is still a historical snapshot, not current trust.
 - The activity feed may be empty when there are no recent real events.
 - Hidden routes still exist in the repository but are not part of the primary product navigation.
 - Future work should continue improving evidence quality and contract-side authorization around feature submission.

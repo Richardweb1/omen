@@ -3,15 +3,15 @@
 const STEPS = [
   {
     num: "01",
-    title: "Onchain Activity",
-    desc: "Wallet or agent behavior is observed — transaction count, failure rate, approvals, anomaly score.",
+    title: "Evidence Values",
+    desc: "A wallet enters bounded evidence values such as transaction count, failure rate, approvals, or anomaly score.",
     color: "#8a8a8a",
     icon: "◈",
   },
   {
     num: "02",
     title: "SignalObject",
-    desc: "Evidence is structured into a reproducible artifact with a Merkle root committing the full evidence set.",
+    desc: "Evidence is structured into a signal object with an evidence hash stored alongside the submitted block window.",
     color: "#f59e0b",
     icon: "⬡",
   },
@@ -39,7 +39,7 @@ const STEPS = [
   {
     num: "06",
     title: "Execution",
-    desc: "TRUSTED → agent executes the action. REVOKED → agent denies execution. Automatic. Verifiable. Onchain.",
+    desc: "TRUSTED allows execution. REVOKED denies execution. The decision comes from an onchain registry record.",
     color: "#16a34a",
     icon: "✦",
   },
@@ -61,13 +61,13 @@ const CONTRACTS = [
   {
     name: "OmenAgentAware",
     addr: "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295",
-    role: "Trust-aware agent that queries OmenRegistry before every autonomous action.",
+    role: "Agent-aware contract support that queries OmenRegistry before an action.",
     color: "#16a34a",
   },
   {
     name: "OmenSovereignAgent",
     addr: "0x3260dDe013d8c5130092B3DFB7d44DdD995da528",
-    role: "Autonomous agent running on Ritual Scheduler. Wakes every 500 blocks to refresh trust signals.",
+    role: "Experimental scheduler-capable agent contract. Not part of the primary Home UX.",
     color: "#8a8a8a",
   },
 ];
@@ -85,7 +85,7 @@ export default function Architecture() {
           How Omen Works
         </h1>
         <p style={{ fontSize: "14px", color: "#b0b0b0", lineHeight: "1.7", maxWidth: "600px" }}>
-          Omen transforms onchain activity into verifiable trust signals that agents consume before acting. The full flow from observation to execution in six steps.
+          Omen stores wallet-signed evidence values and mirrors bounded trust states to OmenRegistry. Agents can read the registry before acting.
         </p>
       </div>
 
@@ -100,7 +100,7 @@ export default function Architecture() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0", minWidth: "600px" }}>
           {[
-            { label: "Onchain Activity", color: "#8a8a8a" },
+            { label: "Evidence Values", color: "#8a8a8a" },
             null,
             { label: "SignalObject",     color: "#f59e0b" },
             null,
@@ -185,7 +185,7 @@ export default function Architecture() {
               TRUSTED → Execute ✓
             </div>
             <div style={{ fontSize: "12px", color: "#8a8a8a" }}>
-              Agent proceeds with autonomous execution
+              Agent proceeds with the action
             </div>
           </div>
           <div style={{
@@ -196,7 +196,7 @@ export default function Architecture() {
               REVOKED → Deny ✕
             </div>
             <div style={{ fontSize: "12px", color: "#8a8a8a" }}>
-              Agent rejects autonomous execution
+              Agent rejects the action
             </div>
           </div>
         </div>
@@ -239,13 +239,14 @@ export default function Architecture() {
         borderRadius: "10px", padding: "1.25rem",
       }}>
         <div style={{ fontSize: "11px", color: "#7c3aed", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>
-          RITUAL INTEGRATION
+          RITUAL CONTRACT SUPPORT
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {[
-            { label: "LLM Precompile (0x0802)", desc: "TEE-attested AI evaluation via GLM-4.7-FP8 — proof of which model ran" },
-            { label: "Scheduler Precompile (0x080C)", desc: "OmenSovereignAgent wakes every 500 blocks to auto-refresh trust signals" },
-            { label: "HTTP Precompile (0x0801)", desc: "External data fetching for evidence enrichment" },
+            { label: "Ritual Testnet", desc: "Active Home flow uses Ritual chain 1979 and the Ritual explorer." },
+            { label: "OmenRegistry", desc: "Registry-backed trust reads provide state, freshness, and handshake decisions." },
+            { label: "OmenAgentAware", desc: "Contract support exists for checking OmenRegistry before an agent action." },
+            { label: "Experimental Contracts", desc: "Scheduler and LLM-related contracts exist, but they are not part of the active product flow." },
           ].map(({ label, desc }) => (
             <div key={label} style={{
               display: "flex", gap: "0.75rem", alignItems: "flex-start",

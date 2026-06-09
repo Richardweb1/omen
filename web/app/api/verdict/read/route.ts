@@ -21,6 +21,20 @@ function recommendedAction(verdictId: number, hasRecord: boolean) {
   return "Build Signal";
 }
 
+function productReason(value: string, reason: string, hasRecord: boolean, isFresh: boolean) {
+  if (!hasRecord) return "No trust signal exists in OmenRegistry for this subject and domain.";
+  if (value === "TRUSTED") {
+    return isFresh
+      ? "TRUSTED: subject is trusted and fresh, so coordination can proceed."
+      : "TRUSTED: subject has a trusted registry signal, but it should be refreshed before coordinating.";
+  }
+  if (value === "LAPSED") return "LAPSED: a trust signal exists in OmenRegistry, but it is no longer fresh.";
+  if (value === "REVOKED") return "REVOKED: OmenRegistry contains a revoked signal for this subject.";
+  if (value === "PENDING") return "PENDING: OmenRegistry contains an inconclusive signal for this subject.";
+  if (reason) return reason.replace(/\bSEALED\b/g, "TRUSTED").replace("subject trusted, allow", "subject is trusted, so coordination can proceed");
+  return "OmenRegistry returned no usable trust signal for this subject.";
+}
+
 function explanation(value: string, reason: string, hasRecord: boolean) {
   if (!hasRecord) return "No trust signal exists in OmenRegistry for this subject and domain.";
   if (value === "LAPSED") return "A trust signal exists in OmenRegistry, but it is no longer fresh.";
@@ -48,6 +62,7 @@ export async function POST(req: Request) {
     const hasRecord = timestamp > 0;
     const displayVerdictId = hasRecord && !isFresh ? 4 : rawVerdictId;
     const value = VERDICT_NAMES[displayVerdictId] || "UNSEEN";
+    const reasonForUi = productReason(value, reason, hasRecord, Boolean(isFresh));
 
     return NextResponse.json({
       subject,
@@ -67,10 +82,10 @@ export async function POST(req: Request) {
         hasRecord,
       },
       recommendedAction: recommendedAction(displayVerdictId, hasRecord),
-      explanation: explanation(value, reason, hasRecord),
+      explanation: reasonForUi || explanation(value, reason, hasRecord),
       handshake: {
         allowed,
-        reason,
+        reason: reasonForUi,
         action,
       },
     });

@@ -4,12 +4,20 @@ import { useAccount } from "wagmi";
 
 const API = '/api';
 
+type LegacyAuditReport = {
+  error?: string;
+  subject?: string;
+  signal?: string;
+  report?: string;
+  txHash?: string;
+};
+
 export default function Audit() {
   const { address } = useAccount();
   const [subject, setSubject] = useState("");
   const [domain, setDomain]   = useState("counterparty_trust.ritual_trade_v1");
   const [loading, setLoading] = useState(false);
-  const [report, setReport]   = useState<any>(null);
+  const [report, setReport]   = useState<LegacyAuditReport | null>(null);
   const [error, setError]     = useState("");
 
   const requestAudit = async () => {
@@ -21,10 +29,10 @@ export default function Audit() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject, domain, requester: address }),
       });
-      const d = await r.json();
+      const d = await r.json() as LegacyAuditReport;
       if (d.error) throw new Error(d.error);
       setReport(d);
-    } catch (e: any) { setError(e.message); }
+    } catch (e) { setError(e instanceof Error ? e.message : "Legacy audit endpoint failed"); }
     setLoading(false);
   };
 
@@ -36,13 +44,13 @@ export default function Audit() {
           background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.3)",
           borderRadius: "6px", padding: "4px 12px", marginBottom: "1rem",
         }}>
-          <span style={{ fontSize: "11px", color: "#7c3aed", fontWeight: "600" }}>PHASE 4</span>
+          <span style={{ fontSize: "11px", color: "#7c3aed", fontWeight: "600" }}>LEGACY</span>
         </div>
         <h1 style={{ fontSize: "2rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>
-          Deep Wallet Audit
+          Legacy Audit Route
         </h1>
         <p style={{ color: "#666", fontSize: "14px" }}>
-          AI-powered security analysis using GLM-4.7-FP8 running inside a Ritual TEE.
+          This route is retained for reference only. The active Omen product is Home registry reads and wallet-signed writes.
         </p>
       </div>
 
@@ -97,7 +105,7 @@ export default function Audit() {
             fontWeight: "600", cursor: loading ? "not-allowed" : "pointer",
           }}
         >
-          {loading ? "Running AI Audit in Ritual TEE..." : "Request Deep Audit"}
+          {loading ? "Checking legacy audit endpoint..." : "Check Legacy Audit Endpoint"}
         </button>
       </div>
 
@@ -120,7 +128,7 @@ export default function Audit() {
               background: "#7c3aed", boxShadow: "0 0 8px #7c3aed",
             }}/>
             <span style={{ fontSize: "13px", color: "#7c3aed", fontWeight: "600" }}>
-              AI AUDIT REPORT
+              LEGACY AUDIT RESPONSE
             </span>
           </div>
 
@@ -160,7 +168,7 @@ export default function Audit() {
                 target="_blank"
                  style={{ fontSize: "12px", color: "#7c3aed" }}
          >
-                 View TEE attestation on Ritual explorer
+                 View transaction on Ritual explorer
               </a>
           )}
         </div>

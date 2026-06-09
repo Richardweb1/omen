@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Activity,
@@ -12,6 +11,9 @@ import {
   Search,
   ShieldCheck,
 } from "lucide-react";
+import InlineSignalBuilder from "@/components/InlineSignalBuilder";
+import TrustReceiptMinter from "@/components/TrustReceiptMinter";
+import { getTrustDomain, trustDomains } from "@/lib/trustDomains";
 
 type VerdictValue = "TRUSTED" | "REVOKED" | "PENDING" | "UNSEEN" | "LAPSED";
 
@@ -66,19 +68,6 @@ type ActivityResponse = {
   items: ActivityItem[];
 };
 
-const domains = [
-  {
-    value: "counterparty_trust.ritual_trade_v1",
-    label: "Counterparty Trust",
-    action: "trade",
-  },
-  {
-    value: "agent_safety.ritual_infernet_v1",
-    label: "Agent Safety",
-    action: "execute",
-  },
-];
-
 const statusClass: Record<VerdictValue | string, string> = {
   TRUSTED: "trusted",
   REVOKED: "revoked",
@@ -99,17 +88,33 @@ function formatTimestamp(timestamp: number) {
   return new Date(ms).toLocaleString();
 }
 
+function isLegacyDomainId(domainValue: string) {
+  return domainValue.includes("ritual_infernet");
+}
+
 export default function Home() {
   const [health, setHealth] = useState<Health | null>(null);
   const [subject, setSubject] = useState("");
-  const [domain, setDomain] = useState(domains[0].value);
+  const [domain, setDomain] = useState(trustDomains[0].value);
   const [result, setResult] = useState<TrustResult | null>(null);
   const [activity, setActivity] = useState<ActivityResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [activityLoading, setActivityLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const activeDomain = useMemo(() => domains.find((item) => item.value === domain) || domains[0], [domain]);
+  const activeDomain = useMemo(() => getTrustDomain(domain), [domain]);
+
+  const updateSubject = (value: string) => {
+    setSubject(value);
+    setResult(null);
+    setError("");
+  };
+
+  const updateDomain = (value: string) => {
+    setDomain(value);
+    setResult(null);
+    setError("");
+  };
 
   useEffect(() => {
     fetch("/api/health")
@@ -139,11 +144,10 @@ export default function Home() {
       .finally(() => setActivityLoading(false));
   }, []);
 
-  const checkTrust = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const readRegistry = async (clearResult = true) => {
     setLoading(true);
     setError("");
-    setResult(null);
+    if (clearResult) setResult(null);
 
     try {
       const response = await fetch("/api/verdict/read", {
@@ -161,9 +165,17 @@ export default function Home() {
     }
   };
 
+  const checkTrust = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await readRegistry(true);
+  };
+
   const block = health?.block ? health.block.toLocaleString() : "syncing";
   const registry = health?.contracts?.registry || "0xCbB34EB8651dc8f1d65a20165C1166C13f626620";
   const resultStatus = result?.verdict.value || "UNSEEN";
+  const shouldOfferBuilder =
+    Boolean(result) &&
+    (resultStatus === "UNSEEN" || resultStatus === "LAPSED" || resultStatus === "PENDING" || !result?.verdict.isFresh || !result?.verdict.hasRecord);
 
   return (
     <main className="trust-home">
@@ -176,7 +188,7 @@ export default function Home() {
             </p>
             <h1>Check trust before coordinating.</h1>
             <p>
-              Omen helps users and agents verify wallets, contracts, agents, and autonomous systems before taking action.
+              Read OmenRegistry on Ritual testnet, then build or refresh a registry-backed trust signal with your connected wallet.
             </p>
           </div>
 
@@ -186,7 +198,7 @@ export default function Home() {
               <input
                 id="subject"
                 value={subject}
-                onChange={(event) => setSubject(event.target.value)}
+                onChange={(event) => updateSubject(event.target.value)}
                 placeholder="0x... wallet, agent, contract, or autonomous system"
                 spellCheck={false}
               />
@@ -194,8 +206,8 @@ export default function Home() {
             <div className="field-grid">
               <div className="field-row">
                 <label htmlFor="domain">Trust Domain</label>
-                <select id="domain" value={domain} onChange={(event) => setDomain(event.target.value)}>
-                  {domains.map((item) => (
+                <select id="domain" value={domain} onChange={(event) => updateDomain(event.target.value)}>
+                  {trustDomains.map((item) => (
                     <option value={item.value} key={item.value}>
                       {item.label}
                     </option>
@@ -266,13 +278,22 @@ export default function Home() {
               <ArrowRight size={14} />
               <span>Read Registry</span>
               <ArrowRight size={14} />
-              <span>Decide</span>
+              <span>{shouldOfferBuilder ? "Build or Refresh" : "Decide"}</span>
             </div>
-            <Link className="builder-link" href="/builder">
-              Build a signal <ArrowRight size={15} />
-            </Link>
           </section>
         </div>
+
+        {result?.verdict.hasRecord && <TrustReceiptMinter result={result} />}
+
+        {shouldOfferBuilder && (
+          <InlineSignalBuilder
+            key={`${subject}:${domain}`}
+            subject={subject}
+            domain={domain}
+            onRecheck={() => readRegistry(false)}
+            onActivityRefresh={loadActivity}
+          />
+        )}
 
         <section className="activity-panel">
           <div className="activity-header">
@@ -304,8 +325,13 @@ export default function Home() {
                     <strong>
                       {item.source} · {item.type}
                     </strong>
-                    <span>
+                    <span className="activity-domain-line">
                       {shortAddress(item.subject)} · {item.domain}
+                      {isLegacyDomainId(item.domain) && (
+                        <em title="Domain id retained for deployed contract compatibility. This does not imply active Infernet integration in the current app flow.">
+                          legacy domain id
+                        </em>
+                      )}
                     </span>
                   </div>
                   <div className="activity-tail">

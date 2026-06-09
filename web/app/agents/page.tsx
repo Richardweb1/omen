@@ -3,7 +3,14 @@ import { useState, useEffect } from "react";
 
 const API = '/api';
 
-const VSTYLE: any = {
+type TrustStyle = { color: string; bg: string; border: string };
+type TrustResponse = {
+  domain?: string;
+  verdict?: { value?: string; action?: string; isFresh?: boolean };
+  handshake?: { allowed?: boolean; reason?: string };
+};
+
+const VSTYLE: Record<string, TrustStyle> = {
   TRUSTED:  { color: "#16a34a", bg: "rgba(22,163,74,0.1)",   border: "rgba(22,163,74,0.3)"   },
   REVOKED:  { color: "#dc2626", bg: "rgba(220,38,38,0.1)",   border: "rgba(220,38,38,0.3)"   },
   PENDING:  { color: "#f59e0b", bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.3)"  },
@@ -13,7 +20,7 @@ const VSTYLE: any = {
 
 export default function Agents() {
   const [blockNum, setBlockNum]     = useState<number | null>(null);
-  const [result, setResult]         = useState<any>(null);
+  const [result, setResult]         = useState<TrustResponse | null>(null);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState("");
   const [checkedAddr, setCheckedAddr] = useState("");
@@ -34,10 +41,10 @@ export default function Agents() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject: addr, domain, action: "execute" }),
       });
-      const d = await r.json();
+      const d = await r.json() as TrustResponse & { error?: string };
       if (d.error) throw new Error(d.error);
       setResult(d);
-    } catch (e: any) { setError(e.message); }
+    } catch (e) { setError(e instanceof Error ? e.message : "Trust check failed"); }
     setLoading(false);
   };
 
@@ -60,7 +67,7 @@ export default function Agents() {
           {[
             { label: "Onchain Activity", color: "#8a8a8a" },
             null,
-            { label: "GLM-4.7-FP8 (TEE)", color: "#7c3aed" },
+            { label: "OmenRegistry", color: "#7c3aed" },
             null,
             { label: "Trust Signal", color: "#f59e0b" },
             null,
@@ -127,9 +134,9 @@ export default function Agents() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "1rem" }}>
           {[
             { label: "Type",           value: "Sovereign Agent",    color: "#7c3aed" },
-            { label: "Scheduler",      value: "0x080C · #2218803",  color: "#f59e0b" },
-            { label: "Wake Interval",  value: "Every 500 blocks",   color: "#f5f5f5" },
-            { label: "Human Trigger",  value: "None required",      color: "#16a34a" },
+            { label: "Status",         value: "Experimental",       color: "#f59e0b" },
+            { label: "Primary UX",     value: "Registry read/write", color: "#f5f5f5" },
+            { label: "Active Flow",    value: "Home",               color: "#16a34a" },
           ].map(({ label, value, color }) => (
             <div key={label} style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "8px", padding: "0.75rem" }}>
               <div style={{ fontSize: "10px", color: "#555", marginBottom: "3px", letterSpacing: "0.05em" }}>{label}</div>
@@ -141,10 +148,10 @@ export default function Agents() {
         {/* Ritual tech used — compact */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.5rem", marginBottom: "1rem" }}>
           {[
-            { label: "Scheduler (0x080C)",    desc: "Autonomous execution",      color: "#f59e0b" },
-            { label: "LLM Precompile (0x0802)", desc: "TEE-attested inference",  color: "#7c3aed" },
-            { label: "OmenRegistry",           desc: "Shared trust layer",       color: "#16a34a" },
-            { label: "TEE Proof",              desc: "Verified onchain",         color: "#8a8a8a" },
+            { label: "OmenRegistry",           desc: "Registry-backed reads",    color: "#16a34a" },
+            { label: "OmenJudgment",           desc: "Signal storage",           color: "#f59e0b" },
+            { label: "OmenAgentAware",         desc: "Decision gating support",  color: "#7c3aed" },
+            { label: "Experimental",           desc: "Not primary UX",           color: "#8a8a8a" },
           ].map(({ label, desc, color }) => (
             <div key={label} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", background: `${color}08`, border: `1px solid ${color}22`, borderRadius: "6px" }}>
               <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: color, flexShrink: 0 }}/>
@@ -156,12 +163,12 @@ export default function Agents() {
           ))}
         </div>
 
-        {/* TEE attestation */}
+        {/* Legacy scope note */}
         <div style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "8px", padding: "0.75rem 1rem", marginBottom: "1rem" }}>
-          <div style={{ fontSize: "10px", color: "#555", letterSpacing: "0.06em", marginBottom: "0.4rem" }}>LIVE TEE ATTESTATION</div>
+          <div style={{ fontSize: "10px", color: "#555", letterSpacing: "0.06em", marginBottom: "0.4rem" }}>LEGACY ROUTE NOTE</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
             <div style={{ fontSize: "12px", color: "#8a8a8a" }}>
-              Model: <span style={{ color: "#f59e0b" }}>GLM-4.7-FP8</span> · Executor: <span style={{ color: "#cfcfcf", fontFamily: "monospace" }}>0xDbd91...8Ff</span>
+              Agent contracts exist, but the primary product flow is Home registry reads and wallet-signed writes.
             </div>
             <a href="https://explorer.ritualfoundation.org/tx/0xeb9c80fca43e530a2bb31ef9ae4bd680ee5d66f96b9fce4cc7a595b8e7ec1658" target="_blank" rel="noopener noreferrer" style={{ fontSize: "11px", color: "#7c3aed", fontFamily: "monospace" }}>{"tx: 0xeb9c80...1658 ↗"}</a>
           </div>
@@ -174,7 +181,7 @@ export default function Agents() {
               { label: "CURRENT BLOCK", value: blockNum.toLocaleString(),               color: "#f5f5f5" },
               { label: "INTERVAL",      value: "500 blocks",                             color: "#f5f5f5" },
               { label: "NEXT WAKE",     value: `~${blockNum + (500 - (blockNum % 500))}`, color: "#16a34a" },
-              { label: "STATUS",        value: "● LIVE",                                 color: "#16a34a" },
+              { label: "STATUS",        value: "EXPERIMENTAL",                           color: "#f59e0b" },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ background: "#0a0a0a", padding: "0.75rem", textAlign: "center" }}>
                 <div style={{ fontSize: "10px", color: "#555", marginBottom: "3px", letterSpacing: "0.05em" }}>{label}</div>
@@ -242,9 +249,9 @@ export default function Agents() {
         <div style={{ fontSize: "11px", color: "#7c3aed", fontWeight: "700", letterSpacing: "0.08em", marginBottom: "0.75rem" }}>WHY OMEN REQUIRES RITUAL</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
           {[
-            { label: "Atomic Intelligence", desc: "LLM in TEE with cryptographic proof", color: "#f59e0b" },
-            { label: "Sovereign Agents",    desc: "No keeper — wakes via 0x080C",        color: "#7c3aed" },
-            { label: "Verifiable Trust",    desc: "Merkle-committed, independently verifiable", color: "#16a34a" },
+            { label: "Ritual Testnet",       desc: "Active contracts run on chain 1979", color: "#f59e0b" },
+            { label: "Agent-Aware Reads",    desc: "OmenAgentAware can query OmenRegistry before acting", color: "#7c3aed" },
+            { label: "Registry-Backed Trust", desc: "Signals are inspectable onchain registry records", color: "#16a34a" },
           ].map(({ label, desc, color }) => (
             <div key={label} style={{ background: "#0a0a0a", border: "1px solid #1a1a1a", borderRadius: "8px", padding: "0.875rem" }}>
               <div style={{ fontSize: "11px", fontWeight: "700", color, marginBottom: "4px" }}>{label}</div>
@@ -256,11 +263,11 @@ export default function Agents() {
 
       {/* Agent-to-agent */}
       <div style={{ background: "#111", border: "1px solid #1a1a1a", borderRadius: "12px", padding: "1.5rem" }}>
-        <div style={{ fontSize: "12px", color: "#8a8a8a", marginBottom: "0.5rem", letterSpacing: "0.05em" }}>AGENT-TO-AGENT VERIFICATION</div>
-        <h2 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>Agents Verifying Agents</h2>
+        <div style={{ fontSize: "12px", color: "#8a8a8a", marginBottom: "0.5rem", letterSpacing: "0.05em" }}>AGENT-TO-AGENT TRUST CHECK</div>
+        <h2 style={{ fontSize: "1.1rem", fontWeight: "700", color: "#f5f5f5", marginBottom: "0.5rem" }}>Agents Checking Agents</h2>
         <p style={{ fontSize: "13px", color: "#b0b0b0", lineHeight: "1.6", marginBottom: "1.25rem" }}>
-          Any agent can verify another agent through OmenRegistry before interacting.
-          Domain: <span style={{ color: "#f59e0b", fontFamily: "monospace" }}>agent_mesh.ritual_infernet_v1</span>
+          Any agent can check another agent through OmenRegistry before interacting.
+          Domain: <span style={{ color: "#f59e0b", fontFamily: "monospace" }}>agent_safety.ritual_infernet_v1</span> <span style={{ color: "#666" }}>(legacy id)</span>
         </p>
         <AgentToAgentDemo />
       </div>
@@ -271,18 +278,18 @@ export default function Agents() {
 
 function AgentToAgentDemo() {
   const SCENARIOS = [
-    { id: "trusted", caller: "Research Agent", callerAddr: "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295", target: "Treasury Agent", targetAddr: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", expected: "TRUSTED", description: "Verifies Treasury Agent before requesting data." },
+    { id: "trusted", caller: "Research Agent", callerAddr: "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295", target: "Treasury Agent", targetAddr: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead0001", expected: "TRUSTED", description: "Checks Treasury Agent before requesting data." },
     { id: "revoked", caller: "Research Agent", callerAddr: "0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295", target: "Unknown Agent",  targetAddr: "0x3d1539c26aabce1b1aca28fb9d8fd70670391d5c", expected: "REVOKED", description: "Detects flagged behavior — interaction rejected." },
   ];
 
-  const [selected, setSelected] = useState<any>(null);
+  const [selected, setSelected] = useState<(typeof SCENARIOS)[number] | null>(null);
   const [simState, setSimState] = useState<"idle"|"checking"|"decided">("idle");
-  const [signal, setSignal]     = useState<any>(null);
+  const [signal, setSignal]     = useState<TrustResponse | null>(null);
 
   const runSim = async (scenario: typeof SCENARIOS[0]) => {
     setSelected(scenario); setSimState("checking"); setSignal(null);
     const r = await fetch("/api/verdict/read", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject: scenario.targetAddr, domain: "agent_safety.ritual_infernet_v1", action: "execute" }) });
-    const d = await r.json();
+    const d = await r.json() as TrustResponse;
     const corrected = { ...d, verdict: { ...d.verdict, value: scenario.expected, action: scenario.expected === "TRUSTED" ? "Interaction allowed" : "Interaction denied" }, handshake: { allowed: scenario.expected === "TRUSTED", reason: scenario.expected === "TRUSTED" ? "Agent operating within safe parameters" : "Unauthorized actions or high anomaly score" } };
     setSignal(corrected);
     await new Promise(res => setTimeout(res, 700));

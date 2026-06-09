@@ -9,6 +9,14 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from web3 import Web3
 
+# LEGACY API
+#
+# This Flask service predates the active Next.js Home/Builder product flow.
+# It still contains hash-derived demo values and a backend private-key
+# submission path. Do not describe it as the current Omen product model.
+# The active product reads OmenRegistry through Next.js and sends write
+# transactions from the connected wallet.
+
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)s  %(message)s")

@@ -38,6 +38,13 @@ function label(verdict: unknown) {
   return VERDICT_NAMES[Number(verdict)] || "UNSEEN";
 }
 
+function normalizeReason(reason: string, allowed: boolean) {
+  if (allowed && reason.includes("SEALED")) {
+    return "TRUSTED: subject is trusted and fresh, so coordination can proceed.";
+  }
+  return reason.replace(/\bSEALED\b/g, "TRUSTED");
+}
+
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const limit = Math.min(Number(url.searchParams.get("limit") || 12), 30);
@@ -97,7 +104,7 @@ export async function GET(req: Request) {
           subject: String(event.args.subject),
           domain: String(event.args.domain),
           status: event.args.allowed ? "TRUSTED" : "REVIEW",
-          detail: String(event.args.reason || "Agent checked registry before acting"),
+          detail: normalizeReason(String(event.args.reason || "Agent checked registry before acting"), Boolean(event.args.allowed)),
           blockNumber: event.blockNumber,
           txHash: event.transactionHash,
           explorer: `https://explorer.ritualfoundation.org/tx/${event.transactionHash}`,

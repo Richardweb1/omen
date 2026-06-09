@@ -1,21 +1,26 @@
 {
   "name": "omen",
   "version": "1.0.0",
-  "description": "Omen — Attested AI judgment for onchain behavior on Ritual chain",
+  "description": "Omen — Registry-backed trust signals for autonomous Ritual agents",
   "scripts": {
     "compile": "hardhat compile",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:ritual": "hardhat run scripts/deploy.ts --network ritual",
+    "deploy:receipt": "hardhat run scripts/deployReceipt.ts --network ritual",
     "seed:local": "hardhat run scripts/seed.ts --network localhost",
     "seed:ritual": "hardhat run scripts/seed.ts --network ritual",
     "node": "hardhat node"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "hardhat": "^2.22.0",
-    "typescript": "^5.0.0",
-    "ts-node": "^10.9.0",
     "@types/node": "^20.0.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "hardhat": "^2.22.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "framer-motion": "^12.40.0"
   }
 }

@@ -16,7 +16,7 @@ export async function GET() {
         id: "agent_safety.ritual_infernet_v1",
         name: "Agent Safety",
         action: "execute",
-        question: "Should this Ritual agent be permitted to act autonomously?",
+        question: "Should this Ritual agent be allowed to execute?",
         outcomes: ["TRUSTED","PENDING","REVOKED","UNSEEN"],
         features: ["action_count","failed_actions","unauthorized_attempts","model_changes","anomaly_score"],
         network: "ritual",

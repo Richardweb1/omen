@@ -1,11 +1,31 @@
 import type { Metadata } from "next";
+import { Fraunces, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import WalletProvider from "@/components/WalletProvider";
 
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+  axes: ["SOFT", "WONK", "opsz"],
+});
+
+const interTight = Inter_Tight({
+  subsets: ["latin"],
+  variable: "--font-inter-tight",
+  display: "swap",
+});
+
+const jetBrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Omen — Trust Infrastructure for Autonomous Coordination",
-  description: "Verifiable trust signals for agents, wallets, and autonomous systems on Ritual Chain.",
+  description: "Registry-backed trust signals for autonomous Ritual agents on Ritual testnet.",
 };
 
 export default function RootLayout({
@@ -15,12 +35,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen" style={{ background: "#0a0a0a" }}>
+      <body className={`${fraunces.variable} ${interTight.variable} ${jetBrains.variable}`}>
         <WalletProvider>
           <Nav />
-          <main style={{ minHeight: "calc(100vh - 60px)" }}>
-            {children}
-          </main>
+          {children}
         </WalletProvider>
       </body>
     </html>

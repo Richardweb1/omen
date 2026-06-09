@@ -9,7 +9,16 @@ const DEMO = [
   { address: "0x0000000000000000000000000000000000000b0b", label: "Trusted Agent Subject", expected: "TRUSTED" },
 ];
 
-const VSTYLE: any = {
+type TrustStyle = { color: string; bg: string; border: string };
+type TrustResult = {
+  error?: string;
+  subject?: string;
+  domain?: string;
+  verdict?: { value?: string; action?: string; isFresh?: boolean };
+  handshake?: { allowed?: boolean; reason?: string };
+};
+
+const VSTYLE: Record<string, TrustStyle> = {
   TRUSTED:  { color: "#16a34a", bg: "rgba(22,163,74,0.1)",   border: "rgba(22,163,74,0.3)"   },
   REVOKED: { color: "#dc2626", bg: "rgba(220,38,38,0.1)",   border: "rgba(220,38,38,0.3)"   },
   PENDING: { color: "#f59e0b", bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.3)"  },
@@ -20,7 +29,7 @@ const VSTYLE: any = {
 export default function Verdict() {
   const [subject, setSubject] = useState("");
   const [domain, setDomain]   = useState("counterparty_trust.ritual_trade_v1");
-  const [result, setResult]   = useState<any>(null);
+  const [result, setResult]   = useState<TrustResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
 
@@ -34,11 +43,11 @@ export default function Verdict() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject: s, domain, action: "trade" }),
       });
-      const d = await r.json();
+      const d = await r.json() as TrustResult;
       if (d.error) throw new Error(d.error);
       setResult(d);
       if (addr) setSubject(addr);
-    } catch (e: any) { setError(e.message); }
+    } catch (e) { setError(e instanceof Error ? e.message : "Trust check failed"); }
     setLoading(false);
   };
 
