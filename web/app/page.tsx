@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
-  ArrowRight,
   Database,
   ExternalLink,
   RefreshCw,
@@ -68,6 +67,27 @@ type ActivityResponse = {
   items: ActivityItem[];
 };
 
+type AddressActivitySummary = {
+  address: string;
+  outgoingTxCount: number;
+  txCountSource: string;
+  txCountLabel: string;
+  reliability: string;
+  stakeActivity: "Not verified";
+  donationActivity: "Not verified";
+  swapActivity: "Not verified";
+  notes: string;
+};
+
+type DisplayTrustState = {
+  status: string;
+  technicalStatus?: string;
+  description: string;
+  recommendedAction: string;
+  current: string;
+  lastUpdated: string;
+};
+
 const statusClass: Record<VerdictValue | string, string> = {
   TRUSTED: "trusted",
   REVOKED: "revoked",
@@ -92,6 +112,70 @@ function isLegacyDomainId(domainValue: string) {
   return domainValue.includes("ritual_infernet");
 }
 
+function displayTrustState(result: TrustResult | null): DisplayTrustState {
+  if (!result) {
+    return {
+      status: "READY",
+      description: "Paste an address to read its current OmenRegistry state.",
+      recommendedAction: "Paste address",
+      current: "Waiting",
+      lastUpdated: "Waiting",
+    };
+  }
+
+  if (!result.verdict.hasRecord) {
+    return {
+      status: "NO TRUST RECORD FOUND",
+      description: "No trust signal has been recorded for this address yet.",
+      recommendedAction: "Mint unavailable",
+      current: "Not applicable",
+      lastUpdated: "Never",
+    };
+  }
+
+  if (result.verdict.value === "LAPSED" || !result.verdict.isFresh) {
+    return {
+      status: "TRUST SIGNAL FOUND",
+      technicalStatus: "Needs refresh",
+      description: "This record exists in OmenRegistry but is no longer fresh.",
+      recommendedAction: "Mint Trust Receipt",
+      current: "No",
+      lastUpdated: formatTimestamp(result.verdict.timestamp),
+    };
+  }
+
+  if (result.verdict.value === "TRUSTED") {
+    return {
+      status: "TRUST SIGNAL FOUND",
+      technicalStatus: "Trusted",
+      description: "This address has a current registry-backed trust signal.",
+      recommendedAction: "Mint Trust Receipt",
+      current: "Yes",
+      lastUpdated: formatTimestamp(result.verdict.timestamp),
+    };
+  }
+
+  if (result.verdict.value === "REVOKED") {
+    return {
+      status: "TRUST SIGNAL FOUND",
+      technicalStatus: "Revoked",
+      description: "This address has a revoked registry-backed trust signal.",
+      recommendedAction: result.recommendedAction,
+      current: result.verdict.isFresh ? "Yes" : "No",
+      lastUpdated: formatTimestamp(result.verdict.timestamp),
+    };
+  }
+
+  return {
+    status: "TRUST SIGNAL FOUND",
+    technicalStatus: result.verdict.value,
+    description: "This address has a registry-backed trust signal that needs review.",
+    recommendedAction: result.recommendedAction,
+    current: result.verdict.isFresh ? "Yes" : "No",
+    lastUpdated: formatTimestamp(result.verdict.timestamp),
+  };
+}
+
 export default function Home() {
   const [health, setHealth] = useState<Health | null>(null);
   const [subject, setSubject] = useState("");
@@ -100,6 +184,9 @@ export default function Home() {
   const [activity, setActivity] = useState<ActivityResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [activityLoading, setActivityLoading] = useState(true);
+  const [addressActivity, setAddressActivity] = useState<AddressActivitySummary | null>(null);
+  const [addressActivityLoading, setAddressActivityLoading] = useState(false);
+  const [addressActivityError, setAddressActivityError] = useState("");
   const [error, setError] = useState("");
 
   const activeDomain = useMemo(() => getTrustDomain(domain), [domain]);
@@ -107,12 +194,16 @@ export default function Home() {
   const updateSubject = (value: string) => {
     setSubject(value);
     setResult(null);
+    setAddressActivity(null);
+    setAddressActivityError("");
     setError("");
   };
 
   const updateDomain = (value: string) => {
     setDomain(value);
     setResult(null);
+    setAddressActivity(null);
+    setAddressActivityError("");
     setError("");
   };
 
@@ -147,7 +238,11 @@ export default function Home() {
   const readRegistry = async (clearResult = true) => {
     setLoading(true);
     setError("");
-    if (clearResult) setResult(null);
+    if (clearResult) {
+      setResult(null);
+      setAddressActivity(null);
+      setAddressActivityError("");
+    }
 
     try {
       const response = await fetch("/api/verdict/read", {
@@ -158,8 +253,22 @@ export default function Home() {
       const data = await response.json();
       if (!response.ok || data.error) throw new Error(data.error || "Trust check failed");
       setResult(data as TrustResult);
+      setAddressActivityLoading(true);
+      setAddressActivityError("");
+      try {
+        const activityResponse = await fetch(`/api/address-activity?address=${encodeURIComponent(data.subject || subject)}`);
+        const activityData = await activityResponse.json();
+        if (!activityResponse.ok || activityData.error) throw new Error(activityData.error || "Activity summary unavailable");
+        setAddressActivity(activityData as AddressActivitySummary);
+      } catch (activityError) {
+        setAddressActivity(null);
+        setAddressActivityError(activityError instanceof Error ? activityError.message : "Activity summary unavailable");
+      } finally {
+        setAddressActivityLoading(false);
+      }
     } catch (checkError) {
       setError(checkError instanceof Error ? checkError.message : "Trust check failed");
+      setAddressActivity(null);
     } finally {
       setLoading(false);
     }
@@ -173,9 +282,17 @@ export default function Home() {
   const block = health?.block ? health.block.toLocaleString() : "syncing";
   const registry = health?.contracts?.registry || "0xCbB34EB8651dc8f1d65a20165C1166C13f626620";
   const resultStatus = result?.verdict.value || "UNSEEN";
+  const displayState = displayTrustState(result);
   const shouldOfferBuilder =
     Boolean(result) &&
     (resultStatus === "UNSEEN" || resultStatus === "LAPSED" || resultStatus === "PENDING" || !result?.verdict.isFresh || !result?.verdict.hasRecord);
+  const receiptGateLabel = (() => {
+    if (!result) return "Check trust first";
+    if (loading) return "Re-checking registry";
+    if (!result.verdict.hasRecord) return "Registry record required";
+    return "";
+  })();
+  const canMintReceipt = Boolean(result) && !receiptGateLabel;
 
   return (
     <main className="trust-home">
@@ -184,11 +301,11 @@ export default function Home() {
           <div className="trust-hero-copy">
             <p className="mono-kicker">
               <span className={health?.status === "ok" ? "live-dot online" : "live-dot"} />
-              OmenRegistry · Ritual 1979 · block {block}
+              OmenRegistry · Ritual · block {block}
             </p>
             <h1>Check trust before coordinating.</h1>
             <p>
-              Read OmenRegistry on Ritual testnet, then build or refresh a registry-backed trust signal with your connected wallet.
+              Omen helps users and agents check trust before acting. Read OmenRegistry, understand the result, and mint a Ritual Trust Receipt.
             </p>
           </div>
 
@@ -202,6 +319,7 @@ export default function Home() {
                 placeholder="0x... wallet, agent, contract, or autonomous system"
                 spellCheck={false}
               />
+              <p className="field-hint">Paste an address to check OmenRegistry.</p>
             </div>
             <div className="field-grid">
               <div className="field-row">
@@ -226,7 +344,6 @@ export default function Home() {
             </div>
           </form>
         </div>
-
         {error && (
           <div className="trust-error" role="alert">
             <AlertTriangle size={18} />
@@ -234,30 +351,32 @@ export default function Home() {
           </div>
         )}
 
+        {result && (
         <div className="result-grid">
           <section className={`result-card ${statusClass[resultStatus] || "unseen"}`}>
             <div className="panel-heading">
               <span>Trust Signal</span>
               <ShieldCheck size={19} />
             </div>
-            <strong>{result?.verdict.value || "UNSEEN"}</strong>
-            <p>{result ? result.subject : "Paste an address to read its current OmenRegistry state."}</p>
+            <strong>{displayState.status}</strong>
+            {displayState.technicalStatus && <small className="technical-status-line">Status: {displayState.technicalStatus}</small>}
+            <p>{displayState.description}</p>
             <div className="result-meta-grid">
               <div>
                 <span>Recommended Action</span>
-                <b>{result?.recommendedAction || "Build Signal"}</b>
+                <b>{displayState.recommendedAction}</b>
               </div>
               <div>
-                <span>Fresh</span>
-                <b>{result ? (result.verdict.isFresh ? "Yes" : "No") : "No"}</b>
+                <span>Current</span>
+                <b>{displayState.current}</b>
               </div>
               <div>
                 <span>Source</span>
                 <b>{result?.source || "OmenRegistry"}</b>
               </div>
               <div>
-                <span>Updated</span>
-                <b>{result ? formatTimestamp(result.verdict.timestamp) : "No record"}</b>
+                <span>Last updated</span>
+                <b>{displayState.lastUpdated}</b>
               </div>
             </div>
             {result?.explorer && (
@@ -266,33 +385,68 @@ export default function Home() {
               </a>
             )}
           </section>
-
-          <section className="explain-card">
-            <div className="panel-heading">
-              <span>Explain Result</span>
-              <ArrowRight size={19} />
-            </div>
-            <p>{result?.explanation || "Omen reads the registry first. If no fresh signal exists, the safe action is to build or refresh the signal before coordinating."}</p>
-            <div className="explain-flow">
-              <span>Paste Address</span>
-              <ArrowRight size={14} />
-              <span>Read Registry</span>
-              <ArrowRight size={14} />
-              <span>{shouldOfferBuilder ? "Build or Refresh" : "Decide"}</span>
-            </div>
-          </section>
         </div>
+        )}
 
-        {result?.verdict.hasRecord && <TrustReceiptMinter result={result} />}
+        {result && (
+          <section className="activity-summary-card">
+            <div className="panel-heading">
+              <span>Activity Summary</span>
+              {addressActivityLoading ? <RefreshCw size={16} className="spin-icon" /> : null}
+            </div>
+            {addressActivity ? (
+              <>
+                <div className="activity-summary-grid">
+                  <div>
+                    <span>Outgoing transactions</span>
+                    <b>{addressActivity.outgoingTxCount.toLocaleString()}</b>
+                  </div>
+                  <div>
+                    <span>Stake activity</span>
+                    <b>{addressActivity.stakeActivity}</b>
+                  </div>
+                  <div>
+                    <span>Donation activity</span>
+                    <b>{addressActivity.donationActivity}</b>
+                  </div>
+                  <div>
+                    <span>Swap activity</span>
+                    <b>{addressActivity.swapActivity}</b>
+                  </div>
+                </div>
+                <p>
+                  Outgoing transactions are read from Ritual RPC using eth_getTransactionCount. This does not include incoming transfers.
+                </p>
+              </>
+            ) : (
+              <p>{addressActivityLoading ? "Reading outgoing transaction count from Ritual RPC..." : addressActivityError || "Activity summary unavailable."}</p>
+            )}
+          </section>
+        )}
+
+        {result?.verdict.hasRecord && (
+          <TrustReceiptMinter
+            key={`${result.subject}:${result.domain}:${result.verdict.value}:${result.verdict.timestamp}:${result.verdict.isFresh}`}
+            result={result}
+            canMint={canMintReceipt}
+            gateLabel={receiptGateLabel}
+            isRechecking={loading}
+            onRecheck={() => readRegistry(false)}
+            outgoingTxCount={addressActivity?.outgoingTxCount}
+          />
+        )}
 
         {shouldOfferBuilder && (
-          <InlineSignalBuilder
-            key={`${subject}:${domain}`}
-            subject={subject}
-            domain={domain}
-            onRecheck={() => readRegistry(false)}
-            onActivityRefresh={loadActivity}
-          />
+          <details className="secondary-refresh-panel">
+            <summary>{result?.verdict.hasRecord ? "Refresh registry signal" : "Submit evidence"}</summary>
+            <InlineSignalBuilder
+              key={`${subject}:${domain}`}
+              subject={subject}
+              domain={domain}
+              onRecheck={() => readRegistry(false)}
+              onActivityRefresh={loadActivity}
+            />
+          </details>
         )}
 
         <section className="activity-panel">

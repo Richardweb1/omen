@@ -6,7 +6,7 @@ This web app is the active Omen product surface.
 
 ## Active Page
 
-- `/` - Complete trust check, explanation, Trust Receipt minting, build/refresh, re-check, and real activity feed.
+- `/` - Complete trust check, result summary, build/refresh, re-check, final Trust Receipt minting, and real activity feed.
 
 Compatibility and hidden routes still exist for reference, but they are not part of the primary product navigation:
 
@@ -27,14 +27,14 @@ The user flow is:
 Paste Address
 -> Read OmenRegistry
 -> Show Trust Signal
--> Explain Freshness and Reason
+-> Show Result Summary
 -> Recommend Action
--> Mint Trust Receipt when a real registry record exists
 -> Build or refresh signal when needed
 -> Re-check OmenRegistry
+-> Mint Trust Receipt as the final step
 ```
 
-Read/check actions do not require a wallet. Minting and trust-signal writes require a connected wallet on Ritual `1979`.
+Read/check actions do not require a wallet. Minting and trust-signal writes require a connected wallet on Ritual `1979`. The receipt step appears after the registry check and is enabled only when a real registry record exists. Stale records mint as historical snapshots; refresh remains a secondary action before acting.
 
 The supported product states are:
 

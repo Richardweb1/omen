@@ -9,7 +9,9 @@ Paste Address
 -> Read OmenRegistry
 -> Understand Result
 -> Decide What To Do
--> Mint Trust Receipt when a real registry record exists
+-> Build or refresh signal when needed
+-> Re-check OmenRegistry
+-> Mint Trust Receipt as the final step
 ```
 
 Omen is not a chatbot, reputation score, blacklist, AI oracle, identity system, reward program, or NFT marketplace. It is a focused Ritual testnet product for reading registry-backed trust state and recording wallet-signed trust snapshots.
@@ -26,14 +28,16 @@ The active product lives on Home (`/`).
 
 1. Paste an address.
 2. Omen reads `OmenRegistry`.
-3. The user sees trust status, explanation, source, freshness, and recommended action.
+3. The user sees a trust status summary, source, freshness, and recommended action.
 4. If a real registry record exists, the user can mint an Omen Trust Receipt.
-5. `OmenTrustReceipt` reads `OmenRegistry` during mint.
-6. The receipt NFT is minted on Ritual `1979` as an onchain trust snapshot.
+5. Home re-checks `OmenRegistry`.
+6. If the signal is missing, stale, or inconclusive, the user can build or refresh the registry signal.
+7. `OmenTrustReceipt` reads `OmenRegistry` during mint.
+8. The receipt NFT is minted on Ritual `1979` as an onchain trust snapshot.
 
-Read/check actions do not require a wallet. Write actions, including building trust signals and minting Trust Receipts, require a connected wallet on Ritual `1979`.
+Read/check actions do not require a wallet. Write actions, including building trust signals and minting Trust Receipts, require a connected wallet on Ritual `1979`. Minting is available only when a real registry record exists; stale records mint as historical snapshots, not current trust.
 
-The Home page does not fabricate verdicts. If `OmenRegistry` has no record, Omen shows `UNSEEN`/no record and disables receipt minting. If a record exists but is stale, Omen shows `LAPSED` and labels the receipt as stale at mint.
+The Home page does not fabricate verdicts. If `OmenRegistry` has no record, Omen shows `UNSEEN`/no record and disables receipt minting. If a record exists but is stale, Omen shows `LAPSED`/needs refresh and still allows a historical Trust Receipt.
 
 ---
 
@@ -47,7 +51,7 @@ Every trust check resolves to one of five product states:
 | `REVOKED` | A fresh revoked signal exists | Deny |
 | `PENDING` | A fresh inconclusive signal exists | Review First |
 | `UNSEEN` | No registry signal exists | Build Signal |
-| `LAPSED` | A signal exists but is not fresh | Build Signal |
+| `LAPSED` | A signal exists but is not fresh | Mint receipt or refresh |
 
 Contract note: the deployed contracts use enum value `1` as `SEALED`; the product presents that state as `TRUSTED`.
 
@@ -190,7 +194,7 @@ Home reads registry state
 
 Visible product route:
 
-- `/` - Complete trust check, receipt minting, build/refresh, re-check, and real activity feed
+- `/` - Complete trust check, build/refresh, re-check, final receipt minting, and real activity feed
 
 Hidden routes retained for future reuse:
 

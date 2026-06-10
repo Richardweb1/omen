@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAccount, useChainId, useConnect, useSendTransaction, useSwitchChain } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { decodeEventLog, encodeFunctionData, type Hex } from "viem";
 import { ArrowRight, ExternalLink, RefreshCw } from "lucide-react";
 import { RITUAL_CHAIN_ID, ritualExplorerAddress, ritualExplorerTx, TRUST_RECEIPT_ABI, TRUST_RECEIPT_ADDRESS } from "@/lib/contracts";
+import TrustReceiptGiftCard from "@/components/TrustReceiptGiftCard";
 
 type TrustReceiptResult = {
   subject: string;
@@ -41,6 +42,12 @@ type RpcReceipt = {
 
 type TrustReceiptMinterProps = {
   result: TrustReceiptResult;
+  canMint: boolean;
+  gateLabel: string;
+  isRechecking?: boolean;
+  onRecheck?: () => Promise<void> | void;
+  onMintStateChange?: (state: { status: ReceiptStatus; txHash: string; tokenId: string }) => void;
+  outgoingTxCount?: number;
 };
 
 async function rpcCall<T>(method: string, params: unknown[]): Promise<T | null> {
@@ -94,7 +101,15 @@ function extractTokenId(receipt: RpcReceipt | null) {
   return "";
 }
 
-export default function TrustReceiptMinter({ result }: TrustReceiptMinterProps) {
+export default function TrustReceiptMinter({
+  result,
+  canMint,
+  gateLabel,
+  isRechecking = false,
+  onRecheck,
+  onMintStateChange,
+  outgoingTxCount,
+}: TrustReceiptMinterProps) {
   const { isConnected } = useAccount();
   const chainId = useChainId();
   const { connectAsync } = useConnect();
@@ -107,17 +122,32 @@ export default function TrustReceiptMinter({ result }: TrustReceiptMinterProps) 
   const [error, setError] = useState("");
 
   const hasReceiptAddress = Boolean(TRUST_RECEIPT_ADDRESS);
-  const canMintRecord = result.source === "OmenRegistry" && result.verdict.hasRecord && hasReceiptAddress;
+  const canMintRecord = result.source === "OmenRegistry" && result.verdict.hasRecord && hasReceiptAddress && canMint;
   const isBusy = status === "connecting" || status === "switching" || status === "requesting" || status === "submitted" || status === "confirming";
   const stale = !result.verdict.isFresh;
+  const cardClassName = canMintRecord ? "receipt-card" : "receipt-card receipt-card-disabled";
+  const hasMintImageData = Boolean(txHash);
+  const blockerMessages = [
+    !hasReceiptAddress ? "Receipt contract missing" : "",
+    !result.verdict.hasRecord ? "Registry record required" : "",
+    hasReceiptAddress && result.verdict.hasRecord && !isConnected ? "Wallet not connected" : "",
+    hasReceiptAddress && result.verdict.hasRecord && isConnected && chainId !== RITUAL_CHAIN_ID ? "Wrong network" : "",
+    status === "failed" ? "Mint transaction failed" : "",
+    status === "minted" && !tokenId ? "Mint succeeded but token ID could not be decoded" : "",
+  ].filter(Boolean);
+
+  useEffect(() => {
+    onMintStateChange?.({ status, txHash, tokenId });
+  }, [onMintStateChange, status, tokenId, txHash]);
 
   const statusLabel = (() => {
     if (!hasReceiptAddress) return "Receipt contract unavailable";
+    if (gateLabel) return gateLabel;
     if (!result.verdict.hasRecord) return "Registry record required";
     if (!isConnected) return "Connect wallet";
-    if (chainId !== RITUAL_CHAIN_ID) return "Switch to Ritual 1979";
+    if (chainId !== RITUAL_CHAIN_ID) return "Switch to Ritual";
     if (status === "connecting") return "Connect wallet";
-    if (status === "switching") return "Switch to Ritual 1979";
+    if (status === "switching") return "Switch to Ritual";
     if (status === "requesting") return "Requesting wallet signature";
     if (status === "submitted") return "Transaction submitted";
     if (status === "confirming") return "Confirming on Ritual";
@@ -128,9 +158,10 @@ export default function TrustReceiptMinter({ result }: TrustReceiptMinterProps) 
 
   const buttonLabel = (() => {
     if (!hasReceiptAddress) return "Receipt contract unavailable";
-    if (!result.verdict.hasRecord) return "Registry result required";
+    if (gateLabel) return gateLabel;
+    if (!result.verdict.hasRecord) return "Registry record required";
     if (!isConnected) return "Connect wallet";
-    if (chainId !== RITUAL_CHAIN_ID) return "Switch to Ritual 1979";
+    if (chainId !== RITUAL_CHAIN_ID) return "Switch to Ritual";
     if (status === "requesting") return "Requesting wallet signature";
     if (status === "submitted") return "Transaction submitted";
     if (status === "confirming") return "Confirming on Ritual";
@@ -144,7 +175,7 @@ export default function TrustReceiptMinter({ result }: TrustReceiptMinterProps) 
     setTokenId("");
 
     if (!canMintRecord) {
-      setError(hasReceiptAddress ? "A registry record is required before minting." : "Receipt contract address is not configured.");
+      setError(gateLabel || (hasReceiptAddress ? "A registry-backed record is required before minting." : "Receipt contract address is not configured."));
       return;
     }
 
@@ -181,14 +212,16 @@ export default function TrustReceiptMinter({ result }: TrustReceiptMinterProps) 
   };
 
   return (
-    <section className="receipt-card">
+    <section className={cardClassName}>
       <div>
-        <p className="mono-kicker">Omen Trust Receipt</p>
+        <p className="mono-kicker">Final Step</p>
         <h2>Mint Trust Receipt</h2>
-        <p>Mint a wallet-signed NFT receipt of this registry-backed trust result.</p>
-        <p className="receipt-helper">This receipt captures the registry state at mint time. Always re-check OmenRegistry before acting.</p>
+        <p>After OmenRegistry is read, mint a wallet-signed receipt for this trust check.</p>
+        <p className="receipt-helper">
+          The receipt is a record of the completed workflow. The active trust state remains the OmenRegistry result. Confirmed onchain records cannot be deleted.
+        </p>
         {!stale && <p className="receipt-fresh-note">Fresh at mint: Yes</p>}
-        {stale && <p className="receipt-warning">Fresh at mint: No. This receipt records a stale registry result.</p>}
+        {stale && <p className="receipt-warning">Fresh at mint: No. This receipt will mint a historical snapshot of the current registry record.</p>}
       </div>
 
       <div className="receipt-action-panel">
@@ -222,14 +255,29 @@ export default function TrustReceiptMinter({ result }: TrustReceiptMinterProps) 
 
         {TRUST_RECEIPT_ADDRESS && (
           <a className="receipt-link muted" href={ritualExplorerAddress(TRUST_RECEIPT_ADDRESS)} target="_blank" rel="noreferrer">
-            OmenTrustReceipt contract <ExternalLink size={14} />
+            View Receipt Contract <ExternalLink size={14} />
           </a>
         )}
 
-        <button className="trust-submit receipt-mint-button" type="button" onClick={() => void mintReceipt()} disabled={isBusy || !canMintRecord || status === "minted"}>
-          {isBusy ? <RefreshCw size={17} className="spin-icon" /> : <ArrowRight size={17} />}
-          {buttonLabel}
-        </button>
+        <div className="receipt-action-buttons">
+          <button className="refresh-button" type="button" onClick={() => void onRecheck?.()} disabled={isBusy || isRechecking}>
+            <RefreshCw size={16} className={isRechecking ? "spin-icon" : ""} />
+            Re-check Registry
+          </button>
+          <button className="trust-submit receipt-mint-button" type="button" onClick={() => void mintReceipt()} disabled={isBusy || !canMintRecord || status === "minted"}>
+            {isBusy ? <RefreshCw size={17} className="spin-icon" /> : <ArrowRight size={17} />}
+            {buttonLabel}
+          </button>
+        </div>
+
+        {blockerMessages.length > 0 && (
+          <div className="receipt-debug-list">
+            <span>Why this step is locked</span>
+            {blockerMessages.map((message) => (
+              <b key={message}>{message}</b>
+            ))}
+          </div>
+        )}
 
         {status === "minted" && (
           <div className="receipt-success">
@@ -239,6 +287,7 @@ export default function TrustReceiptMinter({ result }: TrustReceiptMinterProps) 
                 Token ID: <b>#{tokenId}</b>
               </p>
             )}
+            {!tokenId && <p>Token ID: pending/unknown</p>}
             {txHash && (
               <p>
                 Transaction: <code>{txHash.slice(0, 10)}...{txHash.slice(-8)}</code>
@@ -255,12 +304,38 @@ export default function TrustReceiptMinter({ result }: TrustReceiptMinterProps) 
 
         {txHash && status !== "minted" && (
           <a className="receipt-link" href={ritualExplorerTx(txHash)} target="_blank" rel="noreferrer">
-            View transaction <ExternalLink size={14} />
+            View Mint Transaction <ExternalLink size={14} />
           </a>
         )}
 
         {error && <div className="trust-error receipt-error">{error}</div>}
       </div>
+      {status === "minted" && hasMintImageData ? (
+        <TrustReceiptGiftCard
+          tokenId={tokenId}
+          txHash={txHash}
+          explorerLink={ritualExplorerTx(txHash)}
+          status={result.verdict.value}
+          subject={result.subject}
+          domain={result.domain}
+          freshAtMint={result.verdict.isFresh}
+          outgoingTxCount={outgoingTxCount}
+        />
+      ) : status === "minted" ? (
+        <section className="receipt-gift-panel">
+          <div className="receipt-gift-copy">
+            <p className="mono-kicker">Commemorative image</p>
+            <h3>Receipt minted</h3>
+            <p>Receipt minted, but image preview could not be generated. Try Download Image again.</p>
+            <p className="receipt-helper">This receipt is a historical snapshot. Re-check OmenRegistry before acting.</p>
+          </div>
+          <div className="receipt-gift-preview">
+            <div className="receipt-gift-fallback" role="status">
+              Receipt minted, but image preview could not be generated. Try Download Image again.
+            </div>
+          </div>
+        </section>
+      ) : null}
     </section>
   );
 }

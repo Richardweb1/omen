@@ -34,7 +34,7 @@ export default function Nav() {
       <div className="nav-right">
         <div className="network-pill">
           <span className="live-dot online" />
-          Ritual · 1979
+          Ritual
         </div>
         <ConnectWallet />
       </div>

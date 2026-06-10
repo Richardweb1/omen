@@ -154,7 +154,7 @@ export default function InlineSignalBuilder({ subject, domain, onRecheck, onActi
         try {
           await switchChainAsync({ chainId: RITUAL_CHAIN_ID });
         } catch {
-          throw new Error("Switch your wallet to Ritual Chain 1979 before signing.");
+          throw new Error("Switch your wallet to Ritual Chain before signing.");
         }
       }
 
@@ -216,10 +216,11 @@ export default function InlineSignalBuilder({ subject, domain, onRecheck, onActi
   };
 
   const steps = [
-    { key: "prepare", label: "Prepare signal update", active: txStatus === "idle" || txStatus === "prepared", done: Boolean(prepared) },
-    { key: "submit", label: "Submit signal", active: txStatus === "sign_submit" || txStatus === "confirming_submit", done: Boolean(tx1Hash) },
-    { key: "evaluate", label: "Evaluate/update registry", active: txStatus === "sign_evaluate" || txStatus === "confirming_evaluate", done: Boolean(tx2Hash) },
+    { key: "check", label: "Check registry", active: txStatus === "idle", done: true },
+    { key: "build", label: "Build/refresh signal", active: txStatus === "idle" || txStatus === "prepared", done: Boolean(prepared) },
+    { key: "sign", label: "Sign update", active: txStatus === "sign_submit" || txStatus === "confirming_submit" || txStatus === "sign_evaluate" || txStatus === "confirming_evaluate", done: Boolean(tx1Hash && tx2Hash) },
     { key: "recheck", label: "Re-check result", active: txStatus === "confirmed", done: txStatus === "confirmed" },
+    { key: "receipt", label: "Mint Trust Receipt", active: txStatus === "confirmed", done: false },
   ];
 
   return (
