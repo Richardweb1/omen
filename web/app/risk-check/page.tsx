@@ -70,7 +70,7 @@ function reportAsText(report: RiskReport) {
   ].join("\n");
 }
 
-function buildReviewMessage(walletAddress: string, contractName: string, timestamp: string, nonce: string) {
+function buildReviewMessage(walletAddress: string, timestamp: string, nonce: string) {
   return [
     "Omen Contract Risk Check",
     "",
@@ -79,7 +79,6 @@ function buildReviewMessage(walletAddress: string, contractName: string, timesta
     "This review is not a formal audit guarantee.",
     "",
     `Wallet: ${walletAddress}`,
-    `Contract name: ${contractName || "Untitled"}`,
     `Timestamp: ${timestamp}`,
     `Nonce: ${nonce}`,
   ].join("\n");
@@ -94,9 +93,7 @@ export default function RiskCheckPage() {
   const { address, isConnected } = useAccount();
   const { connectAsync, isPending: connecting } = useConnect();
   const { signMessageAsync } = useSignMessage();
-  const [contractName, setContractName] = useState("");
   const [contractCode, setContractCode] = useState("");
-  const [notes, setNotes] = useState("");
   const [result, setResult] = useState<RiskResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -174,7 +171,7 @@ export default function RiskCheckPage() {
     const walletAddress = getAddress(address);
     const timestamp = new Date().toISOString();
     const nonce = makeNonce();
-    const signedMessage = buildReviewMessage(walletAddress, contractName.trim(), timestamp, nonce);
+    const signedMessage = buildReviewMessage(walletAddress, timestamp, nonce);
 
     setLoading(true);
     setSigning(true);
@@ -192,9 +189,7 @@ export default function RiskCheckPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contractName,
           contractCode,
-          notes,
           walletAddress,
           signature,
           signedMessage,
@@ -217,24 +212,12 @@ export default function RiskCheckPage() {
   };
 
   const runAnotherCheck = () => {
-    setContractName("");
     setContractCode("");
-    setNotes("");
     setResult(null);
     setError("");
     setCopied(false);
     setInputChangedAfterReport(false);
     setFlowState(isConnected ? "inputReady" : "walletRequired");
-  };
-
-  const updateContractName = (value: string) => {
-    invalidateReportForEdit();
-    setContractName(value);
-  };
-
-  const updateNotes = (value: string) => {
-    invalidateReportForEdit();
-    setNotes(value);
   };
 
   const updateContractCode = (value: string) => {
@@ -307,17 +290,6 @@ export default function RiskCheckPage() {
               Input changed. Please continue and sign again to run a new risk check.
             </div>
           )}
-          <div className="risk-field-grid">
-            <label className="risk-field">
-              <span>Contract name optional</span>
-              <input value={contractName} onChange={(event) => updateContractName(event.target.value)} placeholder="OmenVault" disabled={!isConnected || loading} />
-            </label>
-            <label className="risk-field">
-              <span>Notes/context optional</span>
-              <input value={notes} onChange={(event) => updateNotes(event.target.value)} placeholder="Pre-launch review before agent interaction" disabled={!isConnected || loading} />
-            </label>
-          </div>
-
           <label className="risk-field">
             <span>Solidity source code</span>
             <textarea

@@ -69,7 +69,21 @@ function looksLikeSolidity(code: string) {
   return /\bpragma\s+solidity\b/i.test(code) || /\b(contract|interface|library)\s+[A-Za-z_][A-Za-z0-9_]*/.test(code);
 }
 
-function buildReviewMessage(walletAddress: string, contractName: string, timestamp: string, nonce: string) {
+function buildReviewMessage(walletAddress: string, timestamp: string, nonce: string) {
+  return [
+    "Omen Contract Risk Check",
+    "",
+    "I request a pre-interaction contract risk review.",
+    "",
+    "This review is not a formal audit guarantee.",
+    "",
+    `Wallet: ${walletAddress}`,
+    `Timestamp: ${timestamp}`,
+    `Nonce: ${nonce}`,
+  ].join("\n");
+}
+
+function buildLegacyReviewMessage(walletAddress: string, contractName: string, timestamp: string, nonce: string) {
   return [
     "Omen Contract Risk Check",
     "",
@@ -103,8 +117,11 @@ async function verifyReviewSignature(input: {
   if (timestampMs - now > SIGNATURE_FUTURE_SKEW_MS) return false;
 
   const normalizedWallet = getAddress(input.walletAddress);
-  const expectedMessage = buildReviewMessage(normalizedWallet, input.contractName, input.timestamp, input.nonce);
-  if (input.signedMessage !== expectedMessage) return false;
+  const expectedMessages = [
+    buildReviewMessage(normalizedWallet, input.timestamp, input.nonce),
+    buildLegacyReviewMessage(normalizedWallet, input.contractName, input.timestamp, input.nonce),
+  ];
+  if (!expectedMessages.includes(input.signedMessage)) return false;
 
   try {
     return await verifyMessage({
@@ -452,8 +469,8 @@ function buildPrompt(contractName: string, contractCode: string, notes: string, 
       ],
       recommendedFixes: ["string"],
     }),
-    `Contract name: ${contractName || "Not provided"}`,
-    `Context notes: ${notes || "None"}`,
+    ...(contractName ? [`Contract name: ${contractName}`] : []),
+    ...(notes ? [`Context notes: ${notes}`] : []),
     `Deterministic checklist hits: ${JSON.stringify(checklistHits)}`,
     "If checklist hits are relevant, include them as findings with careful wording.",
     "Solidity source:",
