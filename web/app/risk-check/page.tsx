@@ -103,6 +103,7 @@ export default function RiskCheckPage() {
   const [signing, setSigning] = useState(false);
   const [copied, setCopied] = useState(false);
   const [flowState, setFlowState] = useState<RiskFlowState>("walletRequired");
+  const [inputChangedAfterReport, setInputChangedAfterReport] = useState(false);
 
   const findingsBySeverity = useMemo(() => {
     const findings = result?.report.findings || [];
@@ -123,6 +124,7 @@ export default function RiskCheckPage() {
     setError("");
     try {
       await connectAsync({ connector: injected() });
+      setInputChangedAfterReport(false);
       setFlowState("inputReady");
     } catch (connectError) {
       setFlowState("error");
@@ -135,6 +137,7 @@ export default function RiskCheckPage() {
     setError("");
     setResult(null);
     setCopied(false);
+    setInputChangedAfterReport(false);
 
     if (!isConnected || !address) {
       setFlowState("walletRequired");
@@ -156,6 +159,7 @@ export default function RiskCheckPage() {
       setResult(null);
       setCopied(false);
       setError("");
+      setInputChangedAfterReport(true);
       setFlowState(isConnected ? "inputReady" : "walletRequired");
     }
   };
@@ -177,6 +181,7 @@ export default function RiskCheckPage() {
     setError("");
     setResult(null);
     setCopied(false);
+    setInputChangedAfterReport(false);
 
     try {
       const signature = await signMessageAsync({ message: signedMessage });
@@ -200,6 +205,7 @@ export default function RiskCheckPage() {
       const data = await response.json();
       if (!response.ok || data.error) throw new Error(data.error || "Risk check failed");
       setResult(data as RiskResponse);
+      setInputChangedAfterReport(false);
       setFlowState("reportReady");
     } catch (checkError) {
       setFlowState("error");
@@ -217,6 +223,7 @@ export default function RiskCheckPage() {
     setResult(null);
     setError("");
     setCopied(false);
+    setInputChangedAfterReport(false);
     setFlowState(isConnected ? "inputReady" : "walletRequired");
   };
 
@@ -295,6 +302,11 @@ export default function RiskCheckPage() {
 
         <form className={`risk-input-panel ${!isConnected ? "locked" : ""}`} onSubmit={continueToSignature}>
           {!isConnected && <div className="risk-locked-helper">Connect your wallet to start a contract risk check.</div>}
+          {inputChangedAfterReport && (
+            <div className="risk-locked-helper">
+              Input changed. Please continue and sign again to run a new risk check.
+            </div>
+          )}
           <div className="risk-field-grid">
             <label className="risk-field">
               <span>Contract name optional</span>
