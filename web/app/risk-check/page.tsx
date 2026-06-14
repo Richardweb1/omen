@@ -151,6 +151,15 @@ export default function RiskCheckPage() {
     setFlowState("signatureRequired");
   };
 
+  const invalidateReportForEdit = () => {
+    if (result || flowState === "reportReady") {
+      setResult(null);
+      setCopied(false);
+      setError("");
+      setFlowState(isConnected ? "inputReady" : "walletRequired");
+    }
+  };
+
   const signAndRunRiskCheck = async () => {
     if (!isConnected || !address) {
       setFlowState("walletRequired");
@@ -209,6 +218,21 @@ export default function RiskCheckPage() {
     setError("");
     setCopied(false);
     setFlowState(isConnected ? "inputReady" : "walletRequired");
+  };
+
+  const updateContractName = (value: string) => {
+    invalidateReportForEdit();
+    setContractName(value);
+  };
+
+  const updateNotes = (value: string) => {
+    invalidateReportForEdit();
+    setNotes(value);
+  };
+
+  const updateContractCode = (value: string) => {
+    invalidateReportForEdit();
+    setContractCode(value);
   };
 
   const copyReport = async () => {
@@ -274,11 +298,11 @@ export default function RiskCheckPage() {
           <div className="risk-field-grid">
             <label className="risk-field">
               <span>Contract name optional</span>
-              <input value={contractName} onChange={(event) => setContractName(event.target.value)} placeholder="OmenVault" disabled={!isConnected || loading} />
+              <input value={contractName} onChange={(event) => updateContractName(event.target.value)} placeholder="OmenVault" disabled={!isConnected || loading} />
             </label>
             <label className="risk-field">
               <span>Notes/context optional</span>
-              <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Pre-launch review before agent interaction" disabled={!isConnected || loading} />
+              <input value={notes} onChange={(event) => updateNotes(event.target.value)} placeholder="Pre-launch review before agent interaction" disabled={!isConnected || loading} />
             </label>
           </div>
 
@@ -286,7 +310,7 @@ export default function RiskCheckPage() {
             <span>Solidity source code</span>
             <textarea
               value={contractCode}
-              onChange={(event) => setContractCode(event.target.value)}
+              onChange={(event) => updateContractCode(event.target.value)}
               placeholder={"pragma solidity ^0.8.24;\n\ncontract Example {\n  // paste contract here\n}"}
               spellCheck={false}
               disabled={!isConnected || loading}
@@ -295,10 +319,16 @@ export default function RiskCheckPage() {
 
           <div className="risk-form-footer">
             <p>Do not submit private code unless you are comfortable sharing it with the configured analysis provider.</p>
-            <button className="trust-submit" type="submit" disabled={!isConnected || loading}>
-              <FileCode2 size={18} />
-              Continue
-            </button>
+            {flowState === "reportReady" ? (
+              <button className="trust-submit" type="button" onClick={runAnotherCheck}>
+                Run Another Check
+              </button>
+            ) : (
+              <button className="trust-submit" type="submit" disabled={!isConnected || loading}>
+                <FileCode2 size={18} />
+                Continue
+              </button>
+            )}
           </div>
         </form>
 
