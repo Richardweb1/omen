@@ -16,6 +16,8 @@ Paste Address
 
 Omen is not a chatbot, reputation score, blacklist, AI oracle, identity system, reward program, or NFT marketplace. It is a focused Ritual testnet product for reading registry-backed trust state and recording wallet-signed trust snapshots.
 
+Omen also includes a read-only Agent Contract Risk Check for reviewing Solidity contract risk before users or agents interact with a contract. This is a pre-launch risk review, not a formal audit guarantee.
+
 Live: [omen-ritual.vercel.app](https://omen-ritual.vercel.app)  
 GitHub: [github.com/Richardweb1/omen](https://github.com/Richardweb1/omen)  
 Chain: Ritual testnet, chain ID `1979`
@@ -37,7 +39,9 @@ The active product lives on Home (`/`).
 
 Read/check actions do not require a wallet. Write actions, including building trust signals and minting Trust Receipts, require a connected wallet on Ritual `1979`. Minting is available only when a real registry record exists; stale records mint as historical snapshots, not current trust.
 
-The Home page does not fabricate verdicts. If `OmenRegistry` has no record, Omen shows `UNSEEN`/no record and disables receipt minting. If a record exists but is stale, Omen shows `LAPSED`/needs refresh and still allows a historical Trust Receipt.
+The Home page does not fabricate verdicts. If `OmenRegistry` has no record, Omen shows `UNSEEN`/no record and disables receipt minting. For the Ritual Testnet Participant domain, outgoing Ritual transactions can qualify the connected wallet to create a real registry-backed participant record through wallet-signed transactions. If a record exists but is stale, Omen shows `LAPSED`/needs refresh and still allows a historical Trust Receipt.
+
+The Contract Risk Check route (`/risk-check`) is read-only and stateless. It reviews pasted Solidity source with deterministic pattern checks and the configured server-side analysis provider. It does not write to `OmenRegistry`, mint Trust Receipts, or store submitted contracts.
 
 ---
 
@@ -88,7 +92,7 @@ Always re-check `OmenRegistry` before acting.
 |---|---|---|
 | `OmenRegistry` | `0xCbB34EB8651dc8f1d65a20165C1166C13f626620` | Compact trust mirror and read path |
 | `OmenTrustReceipt` | `0x6E010B72337907D24eA6edcA4e27652e8bF4E397` | ERC721 trust snapshot receipt |
-| `OmenJudgment` | `0xc32a1e26e77664753b4A54a4312dF0a8159147D0` | Evidence intake, verdict issuance, revision history |
+| `OmenJudgment` | `0xC8Bb8fAC3e15405a9cD263071105CA7E3AafcFaE` | Evidence intake, verdict issuance, revision history |
 | `OmenAgentAware` | `0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295` | Agent-aware contract support that checks registry state |
 
 Explorer: [explorer.ritualfoundation.org](https://explorer.ritualfoundation.org)
@@ -128,6 +132,12 @@ Question: should this wallet or counterparty be trusted before coordination?
 Question: should this agent be allowed to operate independently?
 
 This domain id is retained for deployed-contract compatibility. The active Home flow should not be described as a Ritual Infernet integration unless a future implementation wires Infernet into the active product.
+
+### `ritual_testnet_participant_v1`
+
+Question: has this connected wallet used Ritual testnet and created a registry-backed participant record?
+
+Omen reads outgoing transactions with `eth_getTransactionCount(address, "latest")`. This is an outgoing nonce count only; it does not include incoming transfers. Activity qualifies the connected wallet to create a participant record, but it does not imply permanent trust, identity verification, official Ritual approval, or a reputation score.
 
 ---
 
@@ -192,9 +202,10 @@ Home reads registry state
 
 ## Route Model
 
-Visible product route:
+Visible product routes:
 
 - `/` - Complete trust check, build/refresh, re-check, final receipt minting, and real activity feed
+- `/risk-check` - Read-only Agent Contract Risk Check for pasted Solidity source
 
 Hidden routes retained for future reuse:
 
@@ -216,6 +227,7 @@ Primary active APIs:
 - `POST /api/verdict/read` - reads real `OmenRegistry` data
 - `GET /api/activity` - reads real recent contract events
 - `POST /api/verdict/evaluate` - prepares wallet-signed transaction data from bounded feature values
+- `POST /api/risk-check` - runs read-only Solidity risk review with the configured server-side analysis provider
 - `POST /api/rpc` - proxies Ritual JSON-RPC calls for transaction confirmation
 - `GET /api/health` - reports Ritual status and contract addresses
 
@@ -237,6 +249,7 @@ Omen's primary write flows are wallet-signed.
 - Home requires Ritual chain `1979` before signing write transactions
 - `OmenTrustReceipt` reads `OmenRegistry` directly during mint
 - No-record addresses cannot mint Trust Receipts
+- Contract Risk Check is read-only and does not store submitted contracts
 - Environment files are ignored by git
 
 ---
@@ -275,9 +288,27 @@ For local Ritual read configuration:
 ```text
 RITUAL_RPC_URL=https://rpc.ritualfoundation.org
 OMEN_REGISTRY_ADDRESS=0xCbB34EB8651dc8f1d65a20165C1166C13f626620
-OMEN_JUDGMENT_ADDRESS=0xc32a1e26e77664753b4A54a4312dF0a8159147D0
+OMEN_JUDGMENT_ADDRESS=0xC8Bb8fAC3e15405a9cD263071105CA7E3AafcFaE
 OMEN_AGENT_AWARE_ADDRESS=0x5690BafF48F41F4C646D5c1DF59ADdeB8BB0a295
 ```
+
+For Agent Contract Risk Check:
+
+```text
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_openrouter_key
+OPENROUTER_MODEL=openai/gpt-4o-mini
+```
+
+OpenRouter is the default provider when `AI_PROVIDER` is omitted. Optional OpenAI setup:
+
+```text
+AI_PROVIDER=openai
+OPENAI_API_KEY=your_openai_key
+OPENAI_MODEL=gpt-4o-mini
+```
+
+Only server-side keys are supported for `/api/risk-check`. Never use `NEXT_PUBLIC_` keys for AI providers. Submitted Solidity source is sent to the configured analysis provider and is not stored by Omen.
 
 Do not expose private keys in frontend code or documentation.
 
@@ -285,6 +316,9 @@ For hosted deployment on Vercel, set:
 
 ```text
 NEXT_PUBLIC_OMEN_TRUST_RECEIPT_ADDRESS=0x6E010B72337907D24eA6edcA4e27652e8bF4E397
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_openrouter_key
+OPENROUTER_MODEL=openai/gpt-4o-mini
 ```
 
 Vercel environment variable changes require a new deployment before they are available to the app.

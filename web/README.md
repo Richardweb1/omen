@@ -7,6 +7,7 @@ This web app is the active Omen product surface.
 ## Active Page
 
 - `/` - Complete trust check, result summary, build/refresh, re-check, final Trust Receipt minting, and real activity feed.
+- `/risk-check` - Read-only Agent Contract Risk Check for pasted Solidity source.
 
 Compatibility and hidden routes still exist for reference, but they are not part of the primary product navigation:
 
@@ -58,10 +59,45 @@ The receipt contract reads `OmenRegistry` directly during mint and stores a hist
 
 A Trust Receipt is not permanent trust, a safety guarantee, an identity token, a reputation system, a blacklist, or a reward badge. Always re-check `OmenRegistry` before acting.
 
+## Agent Contract Risk Check
+
+`/risk-check` lets users paste Solidity source code for a pre-launch risk review before users or Ritual agents interact with a contract.
+
+This feature:
+
+- is read-only and stateless
+- does not write to `OmenRegistry`
+- does not mint a Trust Receipt
+- does not store submitted contracts
+- is not a formal audit guarantee
+
+Submitted Solidity source is sent to the configured analysis provider. Do not submit private code unless you are comfortable sharing it with that provider.
+
+Default server-side env:
+
+```text
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_openrouter_key
+OPENROUTER_MODEL=openai/gpt-4o-mini
+```
+
+Optional OpenAI setup:
+
+```text
+AI_PROVIDER=openai
+OPENAI_API_KEY=your_openai_key
+OPENAI_MODEL=gpt-4o-mini
+```
+
+OpenRouter is the default provider when `AI_PROVIDER` is omitted. Only server-side keys are supported. Never use `NEXT_PUBLIC_` keys for AI providers.
+
 For hosted deployment, set:
 
 ```text
 NEXT_PUBLIC_OMEN_TRUST_RECEIPT_ADDRESS=0x6E010B72337907D24eA6edcA4e27652e8bF4E397
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_openrouter_key
+OPENROUTER_MODEL=openai/gpt-4o-mini
 ```
 
 Vercel environment variable changes require a new deployment before they are available to the app.
@@ -100,6 +136,7 @@ Advanced signal inputs are available through a collapsed section. They are not s
 - `POST /api/verdict/evaluate` - prepares wallet-signed transaction data from bounded feature values.
 - `POST /api/signal/summary` - previews bounded signal values.
 - `POST /api/signal/build` - builds a signal object from bounded signal values.
+- `POST /api/risk-check` - runs read-only Solidity risk review with the configured server-side analysis provider.
 - `POST /api/rpc` - proxies Ritual JSON-RPC calls.
 - `GET /api/health` - reports Ritual status and contract addresses.
 
@@ -120,7 +157,7 @@ Use these phrases:
 - historical trust snapshot
 - agent decision gating
 
-Avoid claims that imply the active product is a proof protocol, live AI audit product, backend-signed service, or broad reputation system.
+Avoid claims that imply the active product is a proof protocol, formal audit guarantee, backend-signed service, or broad reputation system.
 
 ## Legacy API
 
