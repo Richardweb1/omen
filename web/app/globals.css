@@ -2072,7 +2072,10 @@ a {
 }
 
 .risk-hero,
+.risk-stepper,
+.risk-connect-panel,
 .risk-input-panel,
+.risk-signature-panel,
 .risk-report,
 .risk-card,
 .risk-finding,
@@ -2130,11 +2133,119 @@ a {
   line-height: 1.5;
 }
 
+.risk-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.risk-step {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  border: 1px solid rgba(160, 255, 190, 0.12);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: rgba(244, 255, 247, 0.48);
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.risk-step span {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(160, 255, 190, 0.2);
+  border-radius: 999px;
+  color: rgba(244, 255, 247, 0.58);
+  font-size: 11px;
+}
+
+.risk-step.active {
+  border-color: rgba(88, 245, 154, 0.58);
+  color: var(--ink);
+  background: rgba(88, 245, 154, 0.08);
+}
+
+.risk-step.complete {
+  border-color: rgba(88, 245, 154, 0.28);
+  color: rgba(244, 255, 247, 0.74);
+}
+
+.risk-step.complete span {
+  border-color: rgba(88, 245, 154, 0.64);
+  color: var(--ember-soft);
+}
+
+.risk-connect-panel,
+.risk-signature-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 24px;
+  border-radius: 8px;
+}
+
+.risk-connect-panel h2,
+.risk-signature-panel h2 {
+  margin: 4px 0 8px;
+  color: var(--ink);
+  font-family: var(--font-fraunces), serif;
+  font-size: clamp(30px, 4vw, 52px);
+  line-height: 1;
+}
+
+.risk-connect-panel p,
+.risk-signature-panel p,
+.risk-signature-panel small {
+  margin: 0;
+  color: rgba(244, 255, 247, 0.66);
+  line-height: 1.5;
+}
+
+.risk-signature-panel small {
+  display: block;
+  margin-top: 8px;
+}
+
+.risk-connected-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 1px solid rgba(88, 245, 154, 0.38);
+  border-radius: 6px;
+  padding: 0 14px;
+  color: var(--ember-soft);
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
 .risk-input-panel {
+  position: relative;
   display: grid;
   gap: 18px;
   padding: 24px;
   border-radius: 8px;
+}
+
+.risk-input-panel.locked {
+  border-style: dashed;
+}
+
+.risk-locked-helper {
+  border: 1px solid rgba(160, 255, 190, 0.16);
+  border-radius: 6px;
+  background: rgba(1, 7, 4, 0.54);
+  padding: 14px;
+  color: rgba(244, 255, 247, 0.68);
 }
 
 .risk-field-grid,
@@ -2188,6 +2299,14 @@ a {
 .risk-field textarea:focus {
   border-color: rgba(166, 255, 194, 0.55);
   box-shadow: 0 0 0 3px rgba(70, 240, 136, 0.11);
+}
+
+.risk-field input:disabled,
+.risk-field textarea:disabled {
+  cursor: not-allowed;
+  border-color: rgba(160, 255, 190, 0.08);
+  color: rgba(244, 255, 247, 0.42);
+  background: rgba(1, 7, 4, 0.52);
 }
 
 .risk-form-footer {
@@ -2268,6 +2387,13 @@ a {
   align-items: end;
   justify-content: space-between;
   gap: 18px;
+}
+
+.risk-report-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .risk-section-heading h2 {
@@ -2367,11 +2493,14 @@ a {
 
 @media (max-width: 900px) {
   .risk-hero,
+  .risk-stepper,
   .risk-field-grid,
   .risk-report-grid {
     grid-template-columns: 1fr;
   }
 
+  .risk-connect-panel,
+  .risk-signature-panel,
   .risk-form-footer,
   .risk-section-heading,
   .risk-finding-title {
@@ -2380,7 +2509,9 @@ a {
   }
 
   .risk-form-footer .trust-submit,
-  .risk-section-heading .refresh-button {
+  .risk-section-heading .refresh-button,
+  .risk-connect-panel .trust-submit,
+  .risk-signature-panel .trust-submit {
     width: 100%;
   }
 }

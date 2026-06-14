@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAddress, isAddress, verifyMessage } from "viem";
 
 type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 type AgentDecision = "ALLOW" | "REVIEW" | "BLOCK";
@@ -47,6 +48,9 @@ type SolidityFunction = {
 };
 
 const MAX_CODE_LENGTH = 80_000;
+const SIGNATURE_MAX_AGE_MS = 10 * 60 * 1000;
+const SIGNATURE_FUTURE_SKEW_MS = 2 * 60 * 1000;
+const SIGNATURE_REQUIRED_ERROR = "Wallet signature is required before Omen can return a full risk report.";
 const DEFAULT_PROVIDER: AiProvider = "openrouter";
 const DEFAULT_OPENROUTER_MODEL = "openai/gpt-4o-mini";
 const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
@@ -63,6 +67,54 @@ function asString(value: unknown) {
 
 function looksLikeSolidity(code: string) {
   return /\bpragma\s+solidity\b/i.test(code) || /\b(contract|interface|library)\s+[A-Za-z_][A-Za-z0-9_]*/.test(code);
+}
+
+function buildReviewMessage(walletAddress: string, contractName: string, timestamp: string, nonce: string) {
+  return [
+    "Omen Contract Risk Check",
+    "",
+    "I request a pre-interaction contract risk review.",
+    "",
+    "This review is not a formal audit guarantee.",
+    "",
+    `Wallet: ${walletAddress}`,
+    `Contract name: ${contractName || "Untitled"}`,
+    `Timestamp: ${timestamp}`,
+    `Nonce: ${nonce}`,
+  ].join("\n");
+}
+
+async function verifyReviewSignature(input: {
+  walletAddress: string;
+  signature: string;
+  signedMessage: string;
+  nonce: string;
+  timestamp: string;
+  contractName: string;
+}) {
+  if (!input.walletAddress || !input.signature || !input.signedMessage || !input.nonce || !input.timestamp) return false;
+  if (!isAddress(input.walletAddress)) return false;
+
+  const timestampMs = Date.parse(input.timestamp);
+  if (!Number.isFinite(timestampMs)) return false;
+
+  const now = Date.now();
+  if (now - timestampMs > SIGNATURE_MAX_AGE_MS) return false;
+  if (timestampMs - now > SIGNATURE_FUTURE_SKEW_MS) return false;
+
+  const normalizedWallet = getAddress(input.walletAddress);
+  const expectedMessage = buildReviewMessage(normalizedWallet, input.contractName, input.timestamp, input.nonce);
+  if (input.signedMessage !== expectedMessage) return false;
+
+  try {
+    return await verifyMessage({
+      address: normalizedWallet,
+      message: input.signedMessage,
+      signature: input.signature as `0x${string}`,
+    });
+  } catch {
+    return false;
+  }
 }
 
 function getAiProvider(): AiProvider {
@@ -421,6 +473,24 @@ export async function POST(req: Request) {
   const contractName = asString(input.contractName).slice(0, 120);
   const contractCode = asString(input.contractCode);
   const notes = asString(input.notes).slice(0, 2_000);
+  const walletAddress = asString(input.walletAddress);
+  const signature = asString(input.signature);
+  const signedMessage = asString(input.signedMessage);
+  const nonce = asString(input.nonce).slice(0, 120);
+  const timestamp = asString(input.timestamp).slice(0, 80);
+
+  const signatureValid = await verifyReviewSignature({
+    walletAddress,
+    signature,
+    signedMessage,
+    nonce,
+    timestamp,
+    contractName,
+  });
+
+  if (!signatureValid) {
+    return NextResponse.json({ error: SIGNATURE_REQUIRED_ERROR }, { status: 401 });
+  }
 
   if (!contractCode) return NextResponse.json({ error: "contractCode is required." }, { status: 400 });
   if (contractCode.length > MAX_CODE_LENGTH) {

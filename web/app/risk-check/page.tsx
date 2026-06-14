@@ -1,7 +1,10 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { AlertTriangle, Clipboard, FileCode2, RefreshCw, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Check, Clipboard, FileCode2, RefreshCw, ShieldAlert, Wallet } from "lucide-react";
+import { getAddress } from "viem";
+import { useAccount, useConnect, useSignMessage } from "wagmi";
+import { injected } from "wagmi/connectors";
 
 type AgentDecision = "ALLOW" | "REVIEW" | "BLOCK";
 type OverallRisk = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
@@ -37,6 +40,8 @@ type RiskResponse = {
 
 const severityOrder: FindingSeverity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];
 
+type RiskFlowState = "walletRequired" | "inputReady" | "signatureRequired" | "reviewing" | "reportReady" | "error";
+
 function decisionText(decision: AgentDecision) {
   if (decision === "ALLOW") return "No critical/high issues detected by this review.";
   if (decision === "BLOCK") return "Critical or dangerous issues detected. Do not launch or allow autonomous agent interaction until fixed.";
@@ -65,14 +70,39 @@ function reportAsText(report: RiskReport) {
   ].join("\n");
 }
 
+function buildReviewMessage(walletAddress: string, contractName: string, timestamp: string, nonce: string) {
+  return [
+    "Omen Contract Risk Check",
+    "",
+    "I request a pre-interaction contract risk review.",
+    "",
+    "This review is not a formal audit guarantee.",
+    "",
+    `Wallet: ${walletAddress}`,
+    `Contract name: ${contractName || "Untitled"}`,
+    `Timestamp: ${timestamp}`,
+    `Nonce: ${nonce}`,
+  ].join("\n");
+}
+
+function makeNonce() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 export default function RiskCheckPage() {
+  const { address, isConnected } = useAccount();
+  const { connectAsync, isPending: connecting } = useConnect();
+  const { signMessageAsync } = useSignMessage();
   const [contractName, setContractName] = useState("");
   const [contractCode, setContractCode] = useState("");
   const [notes, setNotes] = useState("");
   const [result, setResult] = useState<RiskResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [signing, setSigning] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [flowState, setFlowState] = useState<RiskFlowState>("walletRequired");
 
   const findingsBySeverity = useMemo(() => {
     const findings = result?.report.findings || [];
@@ -81,27 +111,104 @@ export default function RiskCheckPage() {
       .filter((group) => group.findings.length > 0);
   }, [result]);
 
-  const runRiskCheck = async (event: FormEvent<HTMLFormElement>) => {
+  const currentStep = (() => {
+    if (!isConnected) return 1;
+    if (flowState === "signatureRequired") return 3;
+    if (flowState === "reviewing") return 4;
+    if (flowState === "reportReady") return 5;
+    return 2;
+  })();
+
+  const connectWallet = async () => {
+    setError("");
+    try {
+      await connectAsync({ connector: injected() });
+      setFlowState("inputReady");
+    } catch (connectError) {
+      setFlowState("error");
+      setError(connectError instanceof Error ? connectError.message : "Wallet connection failed.");
+    }
+  };
+
+  const continueToSignature = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError("");
+    setResult(null);
+    setCopied(false);
+
+    if (!isConnected || !address) {
+      setFlowState("walletRequired");
+      setError("Connect your wallet to start a contract risk check.");
+      return;
+    }
+
+    if (!contractCode.trim()) {
+      setFlowState("inputReady");
+      setError("Paste Solidity source code before continuing.");
+      return;
+    }
+
+    setFlowState("signatureRequired");
+  };
+
+  const signAndRunRiskCheck = async () => {
+    if (!isConnected || !address) {
+      setFlowState("walletRequired");
+      setError("Connect your wallet to start a contract risk check.");
+      return;
+    }
+
+    const walletAddress = getAddress(address);
+    const timestamp = new Date().toISOString();
+    const nonce = makeNonce();
+    const signedMessage = buildReviewMessage(walletAddress, contractName.trim(), timestamp, nonce);
+
     setLoading(true);
+    setSigning(true);
     setError("");
     setResult(null);
     setCopied(false);
 
     try {
+      const signature = await signMessageAsync({ message: signedMessage });
+      setSigning(false);
+      setFlowState("reviewing");
+
       const response = await fetch("/api/risk-check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contractName, contractCode, notes }),
+        body: JSON.stringify({
+          contractName,
+          contractCode,
+          notes,
+          walletAddress,
+          signature,
+          signedMessage,
+          nonce,
+          timestamp,
+        }),
       });
       const data = await response.json();
       if (!response.ok || data.error) throw new Error(data.error || "Risk check failed");
       setResult(data as RiskResponse);
+      setFlowState("reportReady");
     } catch (checkError) {
+      setFlowState("error");
       setError(checkError instanceof Error ? checkError.message : "Risk check failed");
     } finally {
       setLoading(false);
+      setSigning(false);
     }
+  };
+
+  const runAnotherCheck = () => {
+    setContractName("");
+    setContractCode("");
+    setNotes("");
+    setResult(null);
+    setError("");
+    setCopied(false);
+    setFlowState(isConnected ? "inputReady" : "walletRequired");
   };
 
   const copyReport = async () => {
@@ -120,7 +227,7 @@ export default function RiskCheckPage() {
               <ShieldAlert size={15} />
               Agent Contract Risk Check
             </p>
-            <h1>Contract Risk Check</h1>
+            <h1>Agent Contract Risk Check</h1>
             <p>Review a smart contract before users or agents interact with it.</p>
           </div>
           <div className="risk-note">
@@ -129,15 +236,49 @@ export default function RiskCheckPage() {
           </div>
         </div>
 
-        <form className="risk-input-panel" onSubmit={runRiskCheck}>
+        <div className="risk-stepper" aria-label="Contract risk check steps">
+          {["Connect wallet", "Paste contract", "Sign request", "Review risk"].map((label, index) => {
+            const step = index + 1;
+            const complete = currentStep > step;
+            const active = currentStep === step;
+            return (
+              <div className={`risk-step ${complete ? "complete" : ""} ${active ? "active" : ""}`} key={label}>
+                <span>{complete ? <Check size={14} /> : step}</span>
+                {label}
+              </div>
+            );
+          })}
+        </div>
+
+        <section className="risk-connect-panel">
+          <div>
+            <p className="mono-kicker">Step 1</p>
+            <h2>Connect wallet</h2>
+            <p>{isConnected && address ? `Connected: ${address.slice(0, 6)}...${address.slice(-4)}` : "Connect your wallet to start a contract risk check."}</p>
+          </div>
+          {!isConnected ? (
+            <button className="trust-submit" type="button" onClick={() => void connectWallet()} disabled={connecting}>
+              {connecting ? <RefreshCw size={18} className="spin-icon" /> : <Wallet size={18} />}
+              {connecting ? "Connecting..." : "Connect Wallet"}
+            </button>
+          ) : (
+            <div className="risk-connected-badge">
+              <Check size={16} />
+              Wallet connected
+            </div>
+          )}
+        </section>
+
+        <form className={`risk-input-panel ${!isConnected ? "locked" : ""}`} onSubmit={continueToSignature}>
+          {!isConnected && <div className="risk-locked-helper">Connect your wallet to start a contract risk check.</div>}
           <div className="risk-field-grid">
             <label className="risk-field">
               <span>Contract name optional</span>
-              <input value={contractName} onChange={(event) => setContractName(event.target.value)} placeholder="OmenVault" />
+              <input value={contractName} onChange={(event) => setContractName(event.target.value)} placeholder="OmenVault" disabled={!isConnected || loading} />
             </label>
             <label className="risk-field">
               <span>Notes/context optional</span>
-              <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Pre-launch review before agent interaction" />
+              <input value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Pre-launch review before agent interaction" disabled={!isConnected || loading} />
             </label>
           </div>
 
@@ -148,17 +289,33 @@ export default function RiskCheckPage() {
               onChange={(event) => setContractCode(event.target.value)}
               placeholder={"pragma solidity ^0.8.24;\n\ncontract Example {\n  // paste contract here\n}"}
               spellCheck={false}
+              disabled={!isConnected || loading}
             />
           </label>
 
           <div className="risk-form-footer">
             <p>Do not submit private code unless you are comfortable sharing it with the configured analysis provider.</p>
-            <button className="trust-submit" type="submit" disabled={loading}>
-              {loading ? <RefreshCw size={18} className="spin-icon" /> : <FileCode2 size={18} />}
-              {loading ? "Reviewing contract risk..." : "Run Risk Check"}
+            <button className="trust-submit" type="submit" disabled={!isConnected || loading}>
+              <FileCode2 size={18} />
+              Continue
             </button>
           </div>
         </form>
+
+        {(flowState === "signatureRequired" || flowState === "reviewing") && (
+          <section className="risk-signature-panel">
+            <div>
+              <p className="mono-kicker">Step 3</p>
+              <h2>Sign review request</h2>
+              <p>Sign a review request to unlock the risk report.</p>
+              <small>This does not cost gas, does not move funds, and does not create an OmenRegistry record.</small>
+            </div>
+            <button className="trust-submit" type="button" onClick={() => void signAndRunRiskCheck()} disabled={loading}>
+              {loading ? <RefreshCw size={18} className="spin-icon" /> : <Wallet size={18} />}
+              {signing ? "Sign Review Request" : loading ? "Reviewing contract risk..." : "Sign Review Request"}
+            </button>
+          </section>
+        )}
 
         {error && (
           <div className="trust-error risk-error" role="alert">
@@ -193,10 +350,15 @@ export default function RiskCheckPage() {
                 <p className="mono-kicker">Findings by severity</p>
                 <h2>Review before agent interaction.</h2>
               </div>
-              <button className="refresh-button" type="button" onClick={() => void copyReport()}>
-                <Clipboard size={16} />
-                {copied ? "Copied" : "Copy report"}
-              </button>
+              <div className="risk-report-actions">
+                <button className="refresh-button" type="button" onClick={() => void copyReport()}>
+                  <Clipboard size={16} />
+                  {copied ? "Copied" : "Copy report"}
+                </button>
+                <button className="refresh-button" type="button" onClick={runAnotherCheck}>
+                  Run Another Check
+                </button>
+              </div>
             </div>
 
             {findingsBySeverity.length === 0 ? (
