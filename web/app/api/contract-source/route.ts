@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAddress, isAddress } from "viem";
-import { RITUAL_CHAIN_ID, RITUAL_EXPLORER_URL, RITUAL_PUBLIC_RPC_URL } from "@/lib/contracts";
+import { RITUAL_CHAIN_ID } from "@/lib/contracts";
+
+const RITUAL_PUBLIC_RPC_URL = "https://rpc.ritualfoundation.org";
+const RITUAL_EXPLORER_URL = "https://explorer.ritualfoundation.org";
 
 type RpcResponse = {
   result?: string;
