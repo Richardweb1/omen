@@ -723,7 +723,6 @@ export default function Home() {
             key={`${subject}:${domain}:${participantOutgoingTxCount}`}
             subject={subject}
             domain={domain}
-            outgoingTxCount={participantOutgoingTxCount}
             onRecheck={() => readRegistry(false)}
             onActivityRefresh={loadActivity}
           />
@@ -736,7 +735,6 @@ export default function Home() {
               key={`${subject}:${domain}`}
               subject={subject}
               domain={domain}
-              outgoingTxCount={participantOutgoingTxCount}
               onRecheck={() => readRegistry(false)}
               onActivityRefresh={loadActivity}
             />
