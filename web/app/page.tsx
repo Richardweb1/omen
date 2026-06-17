@@ -96,13 +96,20 @@ type DisplayTrustState = {
 type ContractSourceResponse = {
   address: string;
   chainId: string;
+  network?: string;
   isContract: boolean;
   verified: boolean;
   contractName?: string;
   compilerVersion?: string;
   sourceCode?: string;
+  sourceType?: "single-file" | "multi-file-json";
+  sourceStatus?: "not_checked";
   explorer?: string;
   error?: string;
+  proxy?: {
+    isProxy: boolean;
+    implementationAddress?: string;
+  };
 };
 
 type ContractRiskFinding = {
@@ -128,6 +135,17 @@ const statusClass: Record<VerdictValue | string, string> = {
   LAPSED: "lapsed",
   REVIEW: "pending",
 };
+
+const contractSourceNetworks = [
+  { label: "Ritual", value: "1979" },
+  { label: "Ethereum", value: "1" },
+  { label: "Sepolia", value: "11155111" },
+  { label: "Base", value: "8453" },
+  { label: "Arbitrum", value: "42161" },
+  { label: "Optimism", value: "10" },
+  { label: "Polygon", value: "137" },
+  { label: "BSC", value: "56" },
+];
 
 function shortAddress(address: string) {
   if (address.length < 12) return address;
@@ -276,7 +294,9 @@ export default function Home() {
   const [addressActivityError, setAddressActivityError] = useState("");
   const [contractSource, setContractSource] = useState<ContractSourceResponse | null>(null);
   const [contractSourceLoading, setContractSourceLoading] = useState(false);
+  const [contractSourceLookupLoading, setContractSourceLookupLoading] = useState(false);
   const [contractSourceError, setContractSourceError] = useState("");
+  const [contractSourceChainId, setContractSourceChainId] = useState("1979");
   const [contractRisk, setContractRisk] = useState<ContractRiskResponse | null>(null);
   const [contractRiskLoading, setContractRiskLoading] = useState(false);
   const [contractRiskError, setContractRiskError] = useState("");
@@ -334,10 +354,14 @@ export default function Home() {
       .finally(() => setActivityLoading(false));
   }, []);
 
-  const loadContractSource = async (address: string) => {
-    setContractSourceLoading(true);
+  const loadContractSource = async (address: string, chainId = contractSourceChainId, lookupSource = false) => {
+    if (lookupSource) {
+      setContractSourceLookupLoading(true);
+    } else {
+      setContractSourceLoading(true);
+    }
     setContractSourceError("");
-    setContractSource(null);
+    if (!lookupSource) setContractSource(null);
     setContractRisk(null);
     setContractRiskError("");
 
@@ -345,7 +369,7 @@ export default function Home() {
       const response = await fetch("/api/contract-source", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({ address, chainId, lookupSource }),
       });
       const data = await response.json();
       if (!response.ok || (data.error && !data.isContract)) throw new Error(data.error || "Contract bytecode check failed");
@@ -355,6 +379,16 @@ export default function Home() {
       setContractSourceError(contractError instanceof Error ? contractError.message : "Contract bytecode check failed");
     } finally {
       setContractSourceLoading(false);
+      setContractSourceLookupLoading(false);
+    }
+  };
+
+  const updateContractSourceNetwork = (chainId: string) => {
+    setContractSourceChainId(chainId);
+    setContractRisk(null);
+    setContractRiskError("");
+    if (result?.subject) {
+      void loadContractSource(result.subject, chainId, false);
     }
   };
 
@@ -474,6 +508,14 @@ export default function Home() {
     return "";
   })();
   const canMintReceipt = Boolean(result) && !receiptGateLabel;
+  const activeContractNetwork = contractSourceNetworks.find((network) => network.value === contractSourceChainId) || contractSourceNetworks[0];
+  const verifiedSourceStatus = (() => {
+    if (contractSourceLookupLoading) return "Checking...";
+    if (!contractSource?.isContract) return "";
+    if (contractSource.verified) return "Verified source found";
+    if (contractSource.sourceStatus === "not_checked") return "Not checked yet";
+    return "Verified source not found";
+  })();
 
   return (
     <main className="trust-home">
@@ -645,8 +687,8 @@ export default function Home() {
               <h2>Smart Contract Detected</h2>
               {contractSource.verified ? (
                 <p>
-                  This address has contract bytecode. Verified source was found{contractSource.contractName ? ` for ${contractSource.contractName}` : ""}.
-                  Omen can help check contract risk after a wallet signature.
+                  This address has contract bytecode. Verified Solidity source was found
+                  {contractSource.contractName ? ` for ${contractSource.contractName}` : ""}. Omen can help check contract risk after a wallet signature.
                 </p>
               ) : (
                 <p>
@@ -656,15 +698,69 @@ export default function Home() {
               )}
             </div>
 
+            <div className="contract-source-controls">
+              <label className="contract-network-field">
+                <span>Network</span>
+                <select value={contractSourceChainId} onChange={(event) => updateContractSourceNetwork(event.target.value)}>
+                  {contractSourceNetworks.map((network) => (
+                    <option key={network.value} value={network.value}>
+                      {network.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="contract-source-status">
+                <span>Verified source status</span>
+                <b>{verifiedSourceStatus}</b>
+              </div>
+            </div>
+
+            {contractSource.verified && (
+              <div className="contract-source-facts">
+                <div>
+                  <span>Contract name</span>
+                  <b>{contractSource.contractName || "Verified contract"}</b>
+                </div>
+                <div>
+                  <span>Compiler</span>
+                  <b>{contractSource.compilerVersion || "Unknown"}</b>
+                </div>
+                <div>
+                  <span>Network</span>
+                  <b>{contractSource.network || activeContractNetwork.label}</b>
+                </div>
+                <div>
+                  <span>Source type</span>
+                  <b>{contractSource.sourceType === "multi-file-json" ? "Multi-file JSON" : "Single file"}</b>
+                </div>
+              </div>
+            )}
+
+            {contractSource.proxy?.isProxy && (
+              <div className="contract-risk-note">
+                This address may be a proxy. Review the implementation contract source separately
+                {contractSource.proxy.implementationAddress ? `: ${contractSource.proxy.implementationAddress}` : "."}
+              </div>
+            )}
+
             <div className="contract-risk-actions">
+              <button
+                className="refresh-button"
+                type="button"
+                onClick={() => result?.subject && void loadContractSource(result.subject, contractSourceChainId, true)}
+                disabled={contractSourceLookupLoading}
+              >
+                {contractSourceLookupLoading ? <RefreshCw size={18} className="spin-icon" /> : <Search size={18} />}
+                {contractSourceLookupLoading ? "Checking source..." : "Find Verified Source"}
+              </button>
               <button
                 className="trust-submit"
                 type="button"
                 onClick={() => void runVerifiedContractRiskCheck()}
-                disabled={contractRiskLoading || !contractSource.verified}
+                disabled={contractRiskLoading || contractSourceLookupLoading || !contractSource.verified}
               >
                 {contractRiskLoading ? <RefreshCw size={18} className="spin-icon" /> : <FileCode2 size={18} />}
-                {contractRiskLoading ? "Reviewing contract risk..." : "Check Contract Risk"}
+                {contractRiskLoading ? "Reviewing contract risk..." : "Run Contract Risk Check"}
               </button>
               <a className="refresh-button contract-risk-link" href="/risk-check">
                 Paste Solidity Manually <ExternalLink size={14} />
@@ -673,7 +769,9 @@ export default function Home() {
 
             {!contractSource.verified && (
               <div className="contract-risk-note">
-                Source code was not fetched or verified. Omen will not run a code-level risk report from bytecode alone.
+                {contractSource.sourceStatus === "not_checked"
+                  ? "Verified source has not been checked yet. Omen will not run a code-level risk report from bytecode alone."
+                  : contractSource.error || "Verified Solidity source was not found for this address. Paste Solidity manually to run the checker."}
               </div>
             )}
 

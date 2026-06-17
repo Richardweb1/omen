@@ -1560,6 +1560,59 @@ a {
   gap: 12px;
 }
 
+.contract-source-controls,
+.contract-source-facts {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.contract-network-field,
+.contract-source-status,
+.contract-source-facts div {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(232, 230, 223, 0.1);
+  border-radius: 6px;
+  min-height: 72px;
+  padding: 12px;
+}
+
+.contract-network-field span,
+.contract-source-status span,
+.contract-source-facts span {
+  color: rgba(232, 230, 223, 0.52);
+  display: block;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.contract-network-field select {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--paper);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+  margin-top: 8px;
+  outline: none;
+  width: 100%;
+}
+
+.contract-network-field option {
+  background: #06140c;
+  color: var(--paper);
+}
+
+.contract-source-status b,
+.contract-source-facts b {
+  color: var(--paper);
+  display: block;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
 .contract-risk-link {
   text-decoration: none;
 }
@@ -3006,6 +3059,8 @@ a {
   .result-grid,
   .activity-summary-grid,
   .contract-risk-result,
+  .contract-source-controls,
+  .contract-source-facts,
   .receipt-card,
   .receipt-gift-panel,
   .field-grid,
