@@ -1517,6 +1517,20 @@ a {
   padding: 24px;
 }
 
+.address-type-card {
+  position: relative;
+}
+
+.address-type-wallet-card {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(117, 255, 159, 0.08), transparent 34%),
+    linear-gradient(135deg, rgba(5, 18, 11, 0.94), rgba(3, 12, 8, 0.9));
+}
+
+.address-type-wallet-card h2 {
+  font-size: clamp(28px, 3.2vw, 44px);
+}
+
 .contract-risk-copy .mono-kicker {
   align-items: center;
   display: flex;

@@ -608,7 +608,7 @@ export default function Home() {
         {result && contractSourceLoading && (
           <section className="contract-risk-card">
             <div className="panel-heading">
-              <span>Contract Detection</span>
+              <span>Address Type</span>
               <RefreshCw size={16} className="spin-icon" />
             </div>
             <p>Checking whether this address has smart contract bytecode...</p>
@@ -618,28 +618,41 @@ export default function Home() {
         {result && contractSourceError && (
           <section className="contract-risk-card">
             <div className="panel-heading">
-              <span>Contract Detection</span>
+              <span>Address Type</span>
               <AlertTriangle size={16} />
             </div>
             <p>{contractSourceError}</p>
           </section>
         )}
 
+        {result && contractSource && !contractSource.isContract && (
+          <section className="contract-risk-card address-type-card address-type-wallet-card">
+            <div className="contract-risk-copy">
+              <p className="mono-kicker">Address Type</p>
+              <h2>Wallet / EOA detected</h2>
+              <p>No contract bytecode was found for this address. This looks like a normal wallet address.</p>
+            </div>
+          </section>
+        )}
+
         {result && contractSource?.isContract && (
-          <section className="contract-risk-card">
+          <section className="contract-risk-card address-type-card">
             <div className="contract-risk-copy">
               <p className="mono-kicker">
                 <ShieldAlert size={15} />
-                Smart Contract Detected
+                Address Type
               </p>
-              <h2>This address appears to be a smart contract.</h2>
+              <h2>Smart Contract Detected</h2>
               {contractSource.verified ? (
                 <p>
-                  Verified source was found{contractSource.contractName ? ` for ${contractSource.contractName}` : ""}. Omen can run a gasless
-                  Agent Contract Risk Check from this page after a wallet signature.
+                  This address has contract bytecode. Verified source was found{contractSource.contractName ? ` for ${contractSource.contractName}` : ""}.
+                  Omen can help check contract risk after a wallet signature.
                 </p>
               ) : (
-                <p>{contractSource.error || "Contract source is not verified. Paste Solidity code manually."}</p>
+                <p>
+                  This address has contract bytecode. Omen can help check contract risk if verified source is available, or you can paste Solidity
+                  manually.
+                </p>
               )}
             </div>
 
@@ -654,7 +667,7 @@ export default function Home() {
                 {contractRiskLoading ? "Reviewing contract risk..." : "Check Contract Risk"}
               </button>
               <a className="refresh-button contract-risk-link" href="/risk-check">
-                Open Solidity Checker <ExternalLink size={14} />
+                Paste Solidity Manually <ExternalLink size={14} />
               </a>
             </div>
 
