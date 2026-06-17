@@ -6,10 +6,15 @@ import {
   AlertTriangle,
   Database,
   ExternalLink,
+  FileCode2,
   RefreshCw,
   Search,
   ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
+import { getAddress } from "viem";
+import { useAccount, useConnect, useSignMessage } from "wagmi";
+import { injected } from "wagmi/connectors";
 import InlineSignalBuilder from "@/components/InlineSignalBuilder";
 import TrustReceiptMinter from "@/components/TrustReceiptMinter";
 import { getTrustDomain, trustDomains } from "@/lib/trustDomains";
@@ -88,6 +93,33 @@ type DisplayTrustState = {
   lastUpdated: string;
 };
 
+type ContractSourceResponse = {
+  address: string;
+  chainId: string;
+  isContract: boolean;
+  verified: boolean;
+  contractName?: string;
+  compilerVersion?: string;
+  sourceCode?: string;
+  explorer?: string;
+  error?: string;
+};
+
+type ContractRiskFinding = {
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+  title: string;
+  recommendedFix: string;
+};
+
+type ContractRiskResponse = {
+  report: {
+    overallRisk: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+    agentDecision: "ALLOW" | "REVIEW" | "BLOCK";
+    launchRecommendation: string;
+    findings: ContractRiskFinding[];
+  };
+};
+
 const statusClass: Record<VerdictValue | string, string> = {
   TRUSTED: "trusted",
   REVOKED: "revoked",
@@ -112,7 +144,28 @@ function isLegacyDomainId(domainValue: string) {
   return domainValue.includes("ritual_infernet");
 }
 
-function displayTrustState(result: TrustResult | null): DisplayTrustState {
+function buildRiskReviewMessage(walletAddress: string, timestamp: string, nonce: string) {
+  return [
+    "Omen Contract Risk Check",
+    "",
+    "I request a pre-interaction contract risk review.",
+    "",
+    "This review is not a formal audit guarantee.",
+    "",
+    `Wallet: ${walletAddress}`,
+    `Timestamp: ${timestamp}`,
+    `Nonce: ${nonce}`,
+  ].join("\n");
+}
+
+function makeNonce() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function displayTrustState(result: TrustResult | null, selectedDomain: string, activitySummary: AddressActivitySummary | null): DisplayTrustState {
+  const isParticipantDomain = selectedDomain === "ritual_testnet_participant_v1";
+
   if (!result) {
     return {
       status: "READY",
@@ -124,12 +177,43 @@ function displayTrustState(result: TrustResult | null): DisplayTrustState {
   }
 
   if (!result.verdict.hasRecord) {
+    if (isParticipantDomain && activitySummary && activitySummary.outgoingTxCount > 0) {
+      return {
+        status: "RITUAL ACTIVITY FOUND",
+        description: "This wallet has Ritual testnet activity, but no Omen participant record yet.",
+        recommendedAction: "Create trust record",
+        current: "Not recorded",
+        lastUpdated: "Never",
+      };
+    }
+
+    if (isParticipantDomain) {
+      return {
+        status: "NO PARTICIPANT RECORD YET",
+        description: "No OmenRegistry participant record was found for this address.",
+        recommendedAction: "Use an active Ritual wallet",
+        current: "Not applicable",
+        lastUpdated: "Never",
+      };
+    }
+
     return {
       status: "NO TRUST RECORD FOUND",
       description: "No trust signal has been recorded for this address yet.",
       recommendedAction: "Mint unavailable",
       current: "Not applicable",
       lastUpdated: "Never",
+    };
+  }
+
+  if (isParticipantDomain && result.verdict.value === "TRUSTED") {
+    return {
+      status: "RITUAL PARTICIPANT VERIFIED",
+      technicalStatus: "Trusted",
+      description: "This wallet has a registry-backed Ritual testnet participant record.",
+      recommendedAction: "Mint Trust Receipt",
+      current: result.verdict.isFresh ? "Yes" : "No",
+      lastUpdated: formatTimestamp(result.verdict.timestamp),
     };
   }
 
@@ -177,6 +261,9 @@ function displayTrustState(result: TrustResult | null): DisplayTrustState {
 }
 
 export default function Home() {
+  const { address: connectedWallet, isConnected } = useAccount();
+  const { connectAsync } = useConnect();
+  const { signMessageAsync } = useSignMessage();
   const [health, setHealth] = useState<Health | null>(null);
   const [subject, setSubject] = useState("");
   const [domain, setDomain] = useState(trustDomains[0].value);
@@ -187,6 +274,12 @@ export default function Home() {
   const [addressActivity, setAddressActivity] = useState<AddressActivitySummary | null>(null);
   const [addressActivityLoading, setAddressActivityLoading] = useState(false);
   const [addressActivityError, setAddressActivityError] = useState("");
+  const [contractSource, setContractSource] = useState<ContractSourceResponse | null>(null);
+  const [contractSourceLoading, setContractSourceLoading] = useState(false);
+  const [contractSourceError, setContractSourceError] = useState("");
+  const [contractRisk, setContractRisk] = useState<ContractRiskResponse | null>(null);
+  const [contractRiskLoading, setContractRiskLoading] = useState(false);
+  const [contractRiskError, setContractRiskError] = useState("");
   const [error, setError] = useState("");
 
   const activeDomain = useMemo(() => getTrustDomain(domain), [domain]);
@@ -196,6 +289,10 @@ export default function Home() {
     setResult(null);
     setAddressActivity(null);
     setAddressActivityError("");
+    setContractSource(null);
+    setContractSourceError("");
+    setContractRisk(null);
+    setContractRiskError("");
     setError("");
   };
 
@@ -204,6 +301,8 @@ export default function Home() {
     setResult(null);
     setAddressActivity(null);
     setAddressActivityError("");
+    setContractRisk(null);
+    setContractRiskError("");
     setError("");
   };
 
@@ -235,6 +334,78 @@ export default function Home() {
       .finally(() => setActivityLoading(false));
   }, []);
 
+  const loadContractSource = async (address: string) => {
+    setContractSourceLoading(true);
+    setContractSourceError("");
+    setContractSource(null);
+    setContractRisk(null);
+    setContractRiskError("");
+
+    try {
+      const response = await fetch("/api/contract-source", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address }),
+      });
+      const data = await response.json();
+      if (!response.ok || (data.error && !data.isContract)) throw new Error(data.error || "Contract bytecode check failed");
+      setContractSource(data as ContractSourceResponse);
+    } catch (contractError) {
+      setContractSource(null);
+      setContractSourceError(contractError instanceof Error ? contractError.message : "Contract bytecode check failed");
+    } finally {
+      setContractSourceLoading(false);
+    }
+  };
+
+  const runVerifiedContractRiskCheck = async () => {
+    if (!contractSource?.isContract) return;
+    if (!contractSource.verified || !contractSource.sourceCode) {
+      setContractRiskError(contractSource.error || "Contract source is not verified. Paste Solidity code manually.");
+      return;
+    }
+
+    setContractRiskLoading(true);
+    setContractRiskError("");
+    setContractRisk(null);
+
+    try {
+      let walletAddress = connectedWallet;
+      if (!isConnected || !walletAddress) {
+        const connected = await connectAsync({ connector: injected() });
+        walletAddress = connected.accounts?.[0];
+      }
+      if (!walletAddress) throw new Error("Connect wallet to sign the risk check request.");
+
+      const normalizedWallet = getAddress(walletAddress);
+      const timestamp = new Date().toISOString();
+      const nonce = makeNonce();
+      const signedMessage = buildRiskReviewMessage(normalizedWallet, timestamp, nonce);
+      const signature = await signMessageAsync({ message: signedMessage });
+
+      const response = await fetch("/api/risk-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contractCode: contractSource.sourceCode,
+          contractName: contractSource.contractName,
+          walletAddress: normalizedWallet,
+          signature,
+          signedMessage,
+          nonce,
+          timestamp,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) throw new Error(data.error || "Contract risk check failed");
+      setContractRisk(data as ContractRiskResponse);
+    } catch (riskError) {
+      setContractRiskError(riskError instanceof Error ? riskError.message : "Contract risk check failed");
+    } finally {
+      setContractRiskLoading(false);
+    }
+  };
+
   const readRegistry = async (clearResult = true) => {
     setLoading(true);
     setError("");
@@ -242,6 +413,10 @@ export default function Home() {
       setResult(null);
       setAddressActivity(null);
       setAddressActivityError("");
+      setContractSource(null);
+      setContractSourceError("");
+      setContractRisk(null);
+      setContractRiskError("");
     }
 
     try {
@@ -253,6 +428,7 @@ export default function Home() {
       const data = await response.json();
       if (!response.ok || data.error) throw new Error(data.error || "Trust check failed");
       setResult(data as TrustResult);
+      void loadContractSource(data.subject || subject);
       setAddressActivityLoading(true);
       setAddressActivityError("");
       try {
@@ -282,10 +458,15 @@ export default function Home() {
   const block = health?.block ? health.block.toLocaleString() : "syncing";
   const registry = health?.contracts?.registry || "0xCbB34EB8651dc8f1d65a20165C1166C13f626620";
   const resultStatus = result?.verdict.value || "UNSEEN";
-  const displayState = displayTrustState(result);
+  const isParticipantDomain = domain === "ritual_testnet_participant_v1";
+  const participantOutgoingTxCount = addressActivity?.outgoingTxCount || 0;
+  const participantCanCreateRecord = Boolean(result && isParticipantDomain && !result.verdict.hasRecord && participantOutgoingTxCount > 0);
+  const displayState = displayTrustState(result, domain, addressActivity);
   const shouldOfferBuilder =
     Boolean(result) &&
+    !participantCanCreateRecord &&
     (resultStatus === "UNSEEN" || resultStatus === "LAPSED" || resultStatus === "PENDING" || !result?.verdict.isFresh || !result?.verdict.hasRecord);
+  const shouldOfferSecondaryBuilder = shouldOfferBuilder && (!isParticipantDomain || Boolean(result?.verdict.hasRecord));
   const receiptGateLabel = (() => {
     if (!result) return "Check trust first";
     if (loading) return "Re-checking registry";
@@ -424,6 +605,107 @@ export default function Home() {
           </section>
         )}
 
+        {result && contractSourceLoading && (
+          <section className="contract-risk-card">
+            <div className="panel-heading">
+              <span>Contract Detection</span>
+              <RefreshCw size={16} className="spin-icon" />
+            </div>
+            <p>Checking whether this address has smart contract bytecode...</p>
+          </section>
+        )}
+
+        {result && contractSourceError && (
+          <section className="contract-risk-card">
+            <div className="panel-heading">
+              <span>Contract Detection</span>
+              <AlertTriangle size={16} />
+            </div>
+            <p>{contractSourceError}</p>
+          </section>
+        )}
+
+        {result && contractSource?.isContract && (
+          <section className="contract-risk-card">
+            <div className="contract-risk-copy">
+              <p className="mono-kicker">
+                <ShieldAlert size={15} />
+                Smart Contract Detected
+              </p>
+              <h2>This address appears to be a smart contract.</h2>
+              {contractSource.verified ? (
+                <p>
+                  Verified source was found{contractSource.contractName ? ` for ${contractSource.contractName}` : ""}. Omen can run a gasless
+                  Agent Contract Risk Check from this page after a wallet signature.
+                </p>
+              ) : (
+                <p>{contractSource.error || "Contract source is not verified. Paste Solidity code manually."}</p>
+              )}
+            </div>
+
+            <div className="contract-risk-actions">
+              <button
+                className="trust-submit"
+                type="button"
+                onClick={() => void runVerifiedContractRiskCheck()}
+                disabled={contractRiskLoading || !contractSource.verified}
+              >
+                {contractRiskLoading ? <RefreshCw size={18} className="spin-icon" /> : <FileCode2 size={18} />}
+                {contractRiskLoading ? "Reviewing contract risk..." : "Check Contract Risk"}
+              </button>
+              <a className="refresh-button contract-risk-link" href="/risk-check">
+                Open Solidity Checker <ExternalLink size={14} />
+              </a>
+            </div>
+
+            {!contractSource.verified && (
+              <div className="contract-risk-note">
+                Source code was not fetched or verified. Omen will not run a code-level risk report from bytecode alone.
+              </div>
+            )}
+
+            {contractRiskError && (
+              <div className="trust-error contract-risk-error" role="alert">
+                <AlertTriangle size={18} />
+                {contractRiskError}
+              </div>
+            )}
+
+            {contractRisk && (
+              <div className="contract-risk-result">
+                <div>
+                  <span>Agent Decision</span>
+                  <b>{contractRisk.report.agentDecision}</b>
+                </div>
+                <div>
+                  <span>Risk</span>
+                  <b>{contractRisk.report.overallRisk}</b>
+                </div>
+                <div className="contract-risk-wide">
+                  <span>Recommended action</span>
+                  <b>{contractRisk.report.launchRecommendation}</b>
+                </div>
+                <div className="contract-risk-wide">
+                  <span>Main problems</span>
+                  {contractRisk.report.findings.length > 0 ? (
+                    <ul>
+                      {contractRisk.report.findings.slice(0, 3).map((finding, index) => (
+                        <li key={`${finding.title}-${index}`}>{finding.title}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <b>No critical/high issue detected by this review.</b>
+                  )}
+                </div>
+                <details className="contract-risk-wide contract-risk-details">
+                  <summary>Technical Details</summary>
+                  <pre>{JSON.stringify(contractRisk.report, null, 2)}</pre>
+                </details>
+              </div>
+            )}
+          </section>
+        )}
+
         {result?.verdict.hasRecord && (
           <TrustReceiptMinter
             key={`${result.subject}:${result.domain}:${result.verdict.value}:${result.verdict.timestamp}:${result.verdict.isFresh}`}
@@ -436,13 +718,25 @@ export default function Home() {
           />
         )}
 
-        {shouldOfferBuilder && (
+        {participantCanCreateRecord && (
+          <InlineSignalBuilder
+            key={`${subject}:${domain}:${participantOutgoingTxCount}`}
+            subject={subject}
+            domain={domain}
+            outgoingTxCount={participantOutgoingTxCount}
+            onRecheck={() => readRegistry(false)}
+            onActivityRefresh={loadActivity}
+          />
+        )}
+
+        {shouldOfferSecondaryBuilder && (
           <details className="secondary-refresh-panel">
             <summary>{result?.verdict.hasRecord ? "Refresh registry signal" : "Submit evidence"}</summary>
             <InlineSignalBuilder
               key={`${subject}:${domain}`}
               subject={subject}
               domain={domain}
+              outgoingTxCount={participantOutgoingTxCount}
               onRecheck={() => readRegistry(false)}
               onActivityRefresh={loadActivity}
             />
