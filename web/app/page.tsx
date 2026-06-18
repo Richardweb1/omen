@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
-  Activity,
   AlertTriangle,
   Database,
   ExternalLink,
@@ -15,7 +14,6 @@ import {
 import { getAddress } from "viem";
 import { useAccount, useConnect, useSignMessage } from "wagmi";
 import { injected } from "wagmi/connectors";
-import InlineSignalBuilder from "@/components/InlineSignalBuilder";
 import TrustReceiptMinter from "@/components/TrustReceiptMinter";
 import { getTrustDomain, trustDomains } from "@/lib/trustDomains";
 
@@ -50,26 +48,6 @@ type TrustResult = {
     reason: string;
     action: string;
   };
-};
-
-type ActivityItem = {
-  id: string;
-  source: "OmenRegistry" | "OmenJudgment" | "OmenAgentAware";
-  type: string;
-  subject: string;
-  domain: string;
-  status: string;
-  detail: string;
-  blockNumber: number;
-  txHash: string;
-  explorer: string;
-};
-
-type ActivityResponse = {
-  empty: boolean;
-  fromBlock?: number;
-  toBlock?: number;
-  items: ActivityItem[];
 };
 
 type AddressActivitySummary = {
@@ -143,10 +121,6 @@ function shortAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function isLegacyDomainId(domainValue: string) {
-  return domainValue.includes("ritual_infernet");
-}
-
 function buildRiskReviewMessage(walletAddress: string, timestamp: string, nonce: string) {
   return [
     "Omen Contract Risk Check",
@@ -174,9 +148,7 @@ export default function Home() {
   const [subject, setSubject] = useState("");
   const [domain, setDomain] = useState(trustDomains[0].value);
   const [result, setResult] = useState<TrustResult | null>(null);
-  const [activity, setActivity] = useState<ActivityResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activityLoading, setActivityLoading] = useState(true);
   const [addressActivity, setAddressActivity] = useState<AddressActivitySummary | null>(null);
   const [addressActivityLoading, setAddressActivityLoading] = useState(false);
   const [addressActivityError, setAddressActivityError] = useState("");
@@ -219,27 +191,6 @@ export default function Home() {
       .then((response) => response.json())
       .then((data: Health) => setHealth(data))
       .catch(() => undefined);
-  }, []);
-
-  const loadActivity = async () => {
-    setActivityLoading(true);
-    try {
-      const response = await fetch("/api/activity?limit=12");
-      const data = (await response.json()) as ActivityResponse;
-      setActivity(data);
-    } catch {
-      setActivity({ empty: true, items: [] });
-    } finally {
-      setActivityLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetch("/api/activity?limit=12")
-      .then((response) => response.json())
-      .then((data: ActivityResponse) => setActivity(data))
-      .catch(() => setActivity({ empty: true, items: [] }))
-      .finally(() => setActivityLoading(false));
   }, []);
 
   const loadContractSource = async (address: string, chainId = contractSourceChainId, lookupSource = false) => {
@@ -380,14 +331,6 @@ export default function Home() {
   const block = health?.block ? health.block.toLocaleString() : "syncing";
   const registry = health?.contracts?.registry || "0xCbB34EB8651dc8f1d65a20165C1166C13f626620";
   const resultStatus = result?.verdict.value || "UNSEEN";
-  const isParticipantDomain = domain === "ritual_testnet_participant_v1";
-  const participantOutgoingTxCount = addressActivity?.outgoingTxCount || 0;
-  const participantCanCreateRecord = Boolean(result && isParticipantDomain && !result.verdict.hasRecord && participantOutgoingTxCount > 0);
-  const shouldOfferBuilder =
-    Boolean(result) &&
-    !participantCanCreateRecord &&
-    (resultStatus === "UNSEEN" || resultStatus === "LAPSED" || resultStatus === "PENDING" || !result?.verdict.isFresh || !result?.verdict.hasRecord);
-  const shouldOfferSecondaryBuilder = shouldOfferBuilder && (!isParticipantDomain || Boolean(result?.verdict.hasRecord));
   const receiptGateLabel = (() => {
     if (!result) return "Check trust first";
     if (loading) return "Re-checking registry";
@@ -439,7 +382,7 @@ export default function Home() {
       if (contractSource?.sourceStatus === "not_checked") return "Find verified source or paste Solidity manually to run the checker.";
       return "Paste Solidity manually to run the checker.";
     }
-    if (addressActivity) return "Activity is read from Ritual RPC. This does not include incoming transfers.";
+    if (addressActivity) return "Read from Ritual RPC.";
     return addressActivityError || "Ritual activity could not be read for this address.";
   })();
   const scanRecommendedAction = (() => {
@@ -554,42 +497,6 @@ export default function Home() {
               </article>
             </div>
             <p className="omen-scan-disclaimer">Omen checks are project-level context, not an official Ritual endorsement.</p>
-          </section>
-        )}
-
-        {result && contractSource && !contractSource.isContract && (
-          <section className="activity-summary-card">
-            <div className="panel-heading">
-              <span>Activity Summary</span>
-              {addressActivityLoading ? <RefreshCw size={16} className="spin-icon" /> : null}
-            </div>
-            {addressActivity ? (
-              <>
-                <div className="activity-summary-grid">
-                  <div>
-                    <span>Outgoing transactions</span>
-                    <b>{addressActivity.outgoingTxCount.toLocaleString()}</b>
-                  </div>
-                  <div>
-                    <span>Stake activity</span>
-                    <b>{addressActivity.stakeActivity}</b>
-                  </div>
-                  <div>
-                    <span>Donation activity</span>
-                    <b>{addressActivity.donationActivity}</b>
-                  </div>
-                  <div>
-                    <span>Swap activity</span>
-                    <b>{addressActivity.swapActivity}</b>
-                  </div>
-                </div>
-                <p>
-                  Outgoing transactions are read from Ritual RPC using eth_getTransactionCount. This does not include incoming transfers.
-                </p>
-              </>
-            ) : (
-              <p>{addressActivityLoading ? "Reading outgoing transaction count from Ritual RPC..." : addressActivityError || "Activity summary unavailable."}</p>
-            )}
           </section>
         )}
 
@@ -745,77 +652,6 @@ export default function Home() {
           />
         )}
 
-        {participantCanCreateRecord && (
-          <InlineSignalBuilder
-            key={`${subject}:${domain}:${participantOutgoingTxCount}`}
-            subject={subject}
-            domain={domain}
-            onRecheck={() => readRegistry(false)}
-            onActivityRefresh={loadActivity}
-          />
-        )}
-
-        {shouldOfferSecondaryBuilder && (
-          <details className="secondary-refresh-panel">
-            <summary>{result?.verdict.hasRecord ? "Refresh registry signal" : "Submit evidence"}</summary>
-            <InlineSignalBuilder
-              key={`${subject}:${domain}`}
-              subject={subject}
-              domain={domain}
-              onRecheck={() => readRegistry(false)}
-              onActivityRefresh={loadActivity}
-            />
-          </details>
-        )}
-
-        <section className="activity-panel">
-          <div className="activity-header">
-            <div>
-              <p className="mono-kicker">Recent Trust Activity</p>
-              <h2>Real events only.</h2>
-            </div>
-            <button type="button" className="refresh-button" onClick={() => void loadActivity()} disabled={activityLoading}>
-              <RefreshCw size={16} className={activityLoading ? "spin-icon" : ""} />
-              Refresh
-            </button>
-          </div>
-
-          {activityLoading && <div className="empty-activity">Reading Ritual events...</div>}
-
-          {!activityLoading && (!activity || activity.items.length === 0) && (
-            <div className="empty-activity">
-              <Activity size={22} />
-              No recent trust activity found from OmenRegistry, OmenJudgment, or OmenAgentAware in the current event window.
-            </div>
-          )}
-
-          {!activityLoading && activity && activity.items.length > 0 && (
-            <div className="activity-list">
-              {activity.items.map((item) => (
-                <a className="activity-row" href={item.explorer} target="_blank" rel="noreferrer" key={item.id}>
-                  <div className={`activity-status ${statusClass[item.status] || "unseen"}`}>{item.status}</div>
-                  <div>
-                    <strong>
-                      {item.source} · {item.type}
-                    </strong>
-                    <span className="activity-domain-line">
-                      {shortAddress(item.subject)} · {item.domain}
-                      {isLegacyDomainId(item.domain) && (
-                        <em title="Domain id retained for deployed contract compatibility. This does not imply active Infernet integration in the current app flow.">
-                          legacy domain id
-                        </em>
-                      )}
-                    </span>
-                  </div>
-                  <div className="activity-tail">
-                    <span>#{item.blockNumber.toLocaleString()}</span>
-                    <ExternalLink size={14} />
-                  </div>
-                </a>
-              ))}
-            </div>
-          )}
-        </section>
       </section>
     </main>
   );
