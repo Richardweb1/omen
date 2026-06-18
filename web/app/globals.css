@@ -1516,6 +1516,14 @@ a {
   font-size: 14px;
 }
 
+.omen-scan-disclaimer {
+  display: block;
+  margin-top: 14px;
+  color: rgba(232, 230, 223, 0.56);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .omen-scan-status {
   display: block;
   margin: 0 0 10px;

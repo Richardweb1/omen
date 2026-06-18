@@ -533,10 +533,10 @@ export default function Home() {
     return "Omen is checking this address for deployed contract bytecode.";
   })();
   const registryTrustTitle = !result?.verdict.hasRecord
-    ? "No Omen trust record yet"
+    ? "No Omen signal yet"
     : resultStatus === "REVOKED"
-      ? "Trust record revoked"
-      : "Trust record found";
+      ? "Signal revoked"
+      : "Signal found";
   const registryTrustStatus = (() => {
     if (!result?.verdict.hasRecord) return "Not found";
     if (resultStatus === "REVOKED") return "Revoked";
@@ -546,11 +546,11 @@ export default function Home() {
     return resultStatus;
   })();
   const registryTrustDescription = (() => {
-    if (!result?.verdict.hasRecord) return "No registry-backed trust record exists for this address in the selected domain.";
-    if (resultStatus === "REVOKED") return "This record has been revoked in OmenRegistry.";
-    if (resultStatus === "LAPSED" || !result.verdict.isFresh) return "This record exists in OmenRegistry but is no longer fresh.";
-    if (resultStatus === "PENDING") return "This registry-backed trust record is pending.";
-    return "This address has a current registry-backed trust record.";
+    if (!result?.verdict.hasRecord) return "No project-level Omen signal exists for this address in the selected domain.";
+    if (resultStatus === "REVOKED") return "This Omen signal has been revoked.";
+    if (resultStatus === "LAPSED" || !result.verdict.isFresh) return "This Omen signal exists but is no longer fresh.";
+    if (resultStatus === "PENDING") return "This Omen signal is pending.";
+    return "This address has a current Omen signal.";
   })();
   const scanRecommendedAction = (() => {
     if (contractSourceLoading) return "Complete address scan";
@@ -559,7 +559,7 @@ export default function Home() {
       if (contractSource.sourceStatus === "not_checked") return "Find Verified Source";
       return "Paste Solidity Manually";
     }
-    if (result?.verdict.hasRecord) return "Mint Trust Receipt";
+    if (result?.verdict.hasRecord) return "Mint Trust Receipt snapshot";
     if (participantCanCreateRecord) return "Create Participant Record";
     return "Check another address";
   })();
@@ -571,9 +571,9 @@ export default function Home() {
       return "Open the Solidity checker and paste source code manually.";
     }
     if (result?.verdict.hasRecord && (resultStatus === "LAPSED" || !result.verdict.isFresh)) {
-      return "Mint a historical receipt now, or refresh the trust record before acting.";
+      return "Mint a snapshot of the current Omen signal, or refresh before relying on it.";
     }
-    if (result?.verdict.hasRecord) return "Mint a wallet-signed snapshot of this OmenRegistry result.";
+    if (result?.verdict.hasRecord) return "Mint a snapshot of the current Omen signal before acting.";
     if (participantCanCreateRecord) return "Create a wallet-signed Ritual testnet participant record.";
     return "Try another address or use the secondary record-building action below.";
   })();
@@ -589,7 +589,7 @@ export default function Home() {
             </p>
             <h1>Check trust before coordinating.</h1>
             <p>
-              Omen helps users and agents check trust and contract risk before acting.
+              Omen helps users and agents scan addresses, detect contracts, and check trust/risk signals before acting.
             </p>
           </div>
 
@@ -649,10 +649,13 @@ export default function Home() {
               </article>
 
               <article className="omen-scan-item">
-                <span className="omen-scan-step">2 · OmenRegistry Trust</span>
+                <span className="omen-scan-step">2 · Omen Signal</span>
                 <h2>{registryTrustTitle}</h2>
                 <b className={`omen-scan-status ${statusClass[resultStatus] || "unseen"}`}>{registryTrustStatus}</b>
                 <p>{registryTrustDescription}</p>
+                <small className="omen-scan-disclaimer">
+                  Omen signals are project-level trust/risk signals, not an official Ritual endorsement.
+                </small>
                 <div className="omen-scan-meta">
                   <span>Updated: {displayState.lastUpdated}</span>
                   <span>Source: {result.source || "OmenRegistry"}</span>
