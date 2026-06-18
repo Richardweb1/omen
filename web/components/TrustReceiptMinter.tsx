@@ -167,7 +167,7 @@ export default function TrustReceiptMinter({
     if (status === "confirming") return "Confirming on Ritual";
     if (status === "minted") return "Receipt minted";
     if (status === "failed") return "Mint failed";
-    return "Mint Trust Receipt";
+    return "Mint Receipt";
   })();
 
   const mintReceipt = async () => {
@@ -215,13 +215,13 @@ export default function TrustReceiptMinter({
     <section className={cardClassName}>
       <div>
         <p className="mono-kicker">Final Step</p>
-        <h2>Mint Trust Receipt</h2>
-        <p>After OmenRegistry is read, mint a wallet-signed receipt for this trust check.</p>
+        <h2>Mint Receipt</h2>
+        <p>After Omen completes the check, mint a wallet-signed receipt.</p>
         <p className="receipt-helper">
-          The receipt is a record of the completed workflow. The active trust state remains the OmenRegistry result. Confirmed onchain records cannot be deleted.
+          The receipt records the completed check. OmenRegistry remains the source of its registry state. Confirmed onchain records cannot be deleted.
         </p>
         {!stale && <p className="receipt-fresh-note">Fresh at mint: Yes</p>}
-        {stale && <p className="receipt-warning">Fresh at mint: No. This receipt will mint a historical snapshot of the current registry record.</p>}
+        {stale && <p className="receipt-warning">Fresh at mint: No. This receipt will record the current older registry state.</p>}
       </div>
 
       <div className="receipt-action-panel">
@@ -298,7 +298,7 @@ export default function TrustReceiptMinter({
                 View on Ritual Explorer <ExternalLink size={14} />
               </a>
             )}
-            <p className="receipt-helper">This receipt is a historical snapshot. Re-check OmenRegistry before acting.</p>
+            <p className="receipt-helper">This receipt records the registry state at mint time. Re-check OmenRegistry before acting.</p>
           </div>
         )}
 
@@ -327,7 +327,7 @@ export default function TrustReceiptMinter({
             <p className="mono-kicker">Commemorative image</p>
             <h3>Receipt minted</h3>
             <p>Receipt minted, but image preview could not be generated. Try Download Image again.</p>
-            <p className="receipt-helper">This receipt is a historical snapshot. Re-check OmenRegistry before acting.</p>
+            <p className="receipt-helper">This receipt records the registry state at mint time. Re-check OmenRegistry before acting.</p>
           </div>
           <div className="receipt-gift-preview">
             <div className="receipt-gift-fallback" role="status">

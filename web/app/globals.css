@@ -1524,35 +1524,6 @@ a {
   line-height: 1.5;
 }
 
-.omen-scan-status {
-  display: block;
-  margin: 0 0 10px;
-  color: #9cffb8;
-  font-family: var(--font-jetbrains), ui-monospace, monospace;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.omen-scan-status.revoked {
-  color: #ff8d8d;
-}
-
-.omen-scan-status.lapsed,
-.omen-scan-status.pending {
-  color: #ffd27d;
-}
-
-.omen-scan-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 14px;
-  margin-top: 16px;
-  color: rgba(232, 230, 223, 0.48);
-  font-family: var(--font-jetbrains), ui-monospace, monospace;
-  font-size: 10px;
-}
-
 .omen-scan-recommendation {
   border-color: rgba(117, 255, 159, 0.24);
   background: linear-gradient(145deg, rgba(21, 70, 40, 0.3), rgba(0, 0, 0, 0.16));
