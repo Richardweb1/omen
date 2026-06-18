@@ -372,7 +372,7 @@ export default function Home() {
         body: JSON.stringify({ address, chainId, lookupSource }),
       });
       const data = await response.json();
-      if (!response.ok || (data.error && !data.isContract)) throw new Error(data.error || "Contract bytecode check failed");
+      if (!response.ok) throw new Error(data.error || "Contract bytecode check failed");
       setContractSource(data as ContractSourceResponse);
     } catch (contractError) {
       setContractSource(null);
@@ -516,6 +516,67 @@ export default function Home() {
     if (contractSource.sourceStatus === "not_checked") return "Not checked yet";
     return "Verified source not found";
   })();
+  const addressTypeTitle = (() => {
+    if (contractSourceLoading) return "Checking address type...";
+    if (contractSourceError) return "Address type unavailable";
+    if (contractSource?.isContract) return "Smart Contract Detected";
+    if (contractSource) return "Wallet / EOA detected";
+    return "Checking address type...";
+  })();
+  const addressTypeDescription = (() => {
+    if (contractSourceLoading) return "Omen is checking this address for deployed contract bytecode.";
+    if (contractSourceError) return contractSourceError;
+    if (contractSource?.isContract) {
+      return "This address has contract bytecode. Omen can help check contract risk before users or agents interact with it.";
+    }
+    if (contractSource) return "No contract bytecode was found. This looks like a normal wallet address.";
+    return "Omen is checking this address for deployed contract bytecode.";
+  })();
+  const registryTrustTitle = !result?.verdict.hasRecord
+    ? "No Omen trust record yet"
+    : resultStatus === "REVOKED"
+      ? "Trust record revoked"
+      : "Trust record found";
+  const registryTrustStatus = (() => {
+    if (!result?.verdict.hasRecord) return "Not found";
+    if (resultStatus === "REVOKED") return "Revoked";
+    if (resultStatus === "LAPSED" || !result.verdict.isFresh) return "Needs refresh";
+    if (resultStatus === "PENDING") return "Pending";
+    if (resultStatus === "TRUSTED") return "Trusted";
+    return resultStatus;
+  })();
+  const registryTrustDescription = (() => {
+    if (!result?.verdict.hasRecord) return "No registry-backed trust record exists for this address in the selected domain.";
+    if (resultStatus === "REVOKED") return "This record has been revoked in OmenRegistry.";
+    if (resultStatus === "LAPSED" || !result.verdict.isFresh) return "This record exists in OmenRegistry but is no longer fresh.";
+    if (resultStatus === "PENDING") return "This registry-backed trust record is pending.";
+    return "This address has a current registry-backed trust record.";
+  })();
+  const scanRecommendedAction = (() => {
+    if (contractSourceLoading) return "Complete address scan";
+    if (contractSource?.isContract) {
+      if (contractSource.verified) return "Run Contract Risk Check";
+      if (contractSource.sourceStatus === "not_checked") return "Find Verified Source";
+      return "Paste Solidity Manually";
+    }
+    if (result?.verdict.hasRecord) return "Mint Trust Receipt";
+    if (participantCanCreateRecord) return "Create Participant Record";
+    return "Check another address";
+  })();
+  const scanRecommendedDescription = (() => {
+    if (contractSourceLoading) return "Omen is still determining whether this address is a wallet or contract.";
+    if (contractSource?.isContract) {
+      if (contractSource.verified) return "Sign a gasless review request to analyze the verified Solidity source.";
+      if (contractSource.sourceStatus === "not_checked") return "Try the explorer-backed source lookup before running a code-level review.";
+      return "Open the Solidity checker and paste source code manually.";
+    }
+    if (result?.verdict.hasRecord && (resultStatus === "LAPSED" || !result.verdict.isFresh)) {
+      return "Mint a historical receipt now, or refresh the trust record before acting.";
+    }
+    if (result?.verdict.hasRecord) return "Mint a wallet-signed snapshot of this OmenRegistry result.";
+    if (participantCanCreateRecord) return "Create a wallet-signed Ritual testnet participant record.";
+    return "Try another address or use the secondary record-building action below.";
+  })();
 
   return (
     <main className="trust-home">
@@ -528,7 +589,7 @@ export default function Home() {
             </p>
             <h1>Check trust before coordinating.</h1>
             <p>
-              Omen helps users and agents check trust before acting. Read OmenRegistry, understand the result, and mint a Ritual Trust Receipt.
+              Omen helps users and agents check trust and contract risk before acting.
             </p>
           </div>
 
@@ -575,43 +636,44 @@ export default function Home() {
         )}
 
         {result && (
-        <div className="result-grid">
-          <section className={`result-card ${statusClass[resultStatus] || "unseen"}`}>
+          <section className={`result-card omen-address-scan ${statusClass[resultStatus] || "unseen"}`}>
             <div className="panel-heading">
-              <span>Trust Signal</span>
+              <span>Omen Address Scan</span>
               <ShieldCheck size={19} />
             </div>
-            <strong>{displayState.status}</strong>
-            {displayState.technicalStatus && <small className="technical-status-line">Status: {displayState.technicalStatus}</small>}
-            <p>{displayState.description}</p>
-            <div className="result-meta-grid">
-              <div>
-                <span>Recommended Action</span>
-                <b>{displayState.recommendedAction}</b>
-              </div>
-              <div>
-                <span>Current</span>
-                <b>{displayState.current}</b>
-              </div>
-              <div>
-                <span>Source</span>
-                <b>{result?.source || "OmenRegistry"}</b>
-              </div>
-              <div>
-                <span>Last updated</span>
-                <b>{displayState.lastUpdated}</b>
-              </div>
+            <div className="omen-scan-grid">
+              <article className="omen-scan-item">
+                <span className="omen-scan-step">1 · Address Type</span>
+                <h2>{addressTypeTitle}</h2>
+                <p>{addressTypeDescription}</p>
+              </article>
+
+              <article className="omen-scan-item">
+                <span className="omen-scan-step">2 · OmenRegistry Trust</span>
+                <h2>{registryTrustTitle}</h2>
+                <b className={`omen-scan-status ${statusClass[resultStatus] || "unseen"}`}>{registryTrustStatus}</b>
+                <p>{registryTrustDescription}</p>
+                <div className="omen-scan-meta">
+                  <span>Updated: {displayState.lastUpdated}</span>
+                  <span>Source: {result.source || "OmenRegistry"}</span>
+                </div>
+                {result.explorer && (
+                  <a className="explorer-link" href={result.explorer} target="_blank" rel="noreferrer">
+                    View registry <ExternalLink size={15} />
+                  </a>
+                )}
+              </article>
+
+              <article className="omen-scan-item omen-scan-recommendation">
+                <span className="omen-scan-step">3 · Recommended Action</span>
+                <h2>{scanRecommendedAction}</h2>
+                <p>{scanRecommendedDescription}</p>
+              </article>
             </div>
-            {result?.explorer && (
-              <a className="explorer-link" href={result.explorer} target="_blank" rel="noreferrer">
-                View registry <ExternalLink size={15} />
-              </a>
-            )}
           </section>
-        </div>
         )}
 
-        {result && (
+        {result && contractSource && !contractSource.isContract && (
           <section className="activity-summary-card">
             <div className="panel-heading">
               <span>Activity Summary</span>
@@ -647,44 +709,14 @@ export default function Home() {
           </section>
         )}
 
-        {result && contractSourceLoading && (
-          <section className="contract-risk-card">
-            <div className="panel-heading">
-              <span>Address Type</span>
-              <RefreshCw size={16} className="spin-icon" />
-            </div>
-            <p>Checking whether this address has smart contract bytecode...</p>
-          </section>
-        )}
-
-        {result && contractSourceError && (
-          <section className="contract-risk-card">
-            <div className="panel-heading">
-              <span>Address Type</span>
-              <AlertTriangle size={16} />
-            </div>
-            <p>{contractSourceError}</p>
-          </section>
-        )}
-
-        {result && contractSource && !contractSource.isContract && (
-          <section className="contract-risk-card address-type-card address-type-wallet-card">
-            <div className="contract-risk-copy">
-              <p className="mono-kicker">Address Type</p>
-              <h2>Wallet / EOA detected</h2>
-              <p>No contract bytecode was found for this address. This looks like a normal wallet address.</p>
-            </div>
-          </section>
-        )}
-
         {result && contractSource?.isContract && (
-          <section className="contract-risk-card address-type-card">
+          <section className="contract-risk-card">
             <div className="contract-risk-copy">
               <p className="mono-kicker">
                 <ShieldAlert size={15} />
-                Address Type
+                Contract Risk Path
               </p>
-              <h2>Smart Contract Detected</h2>
+              <h2>Review contract risk</h2>
               {contractSource.verified ? (
                 <p>
                   This address has contract bytecode. Verified Solidity source was found

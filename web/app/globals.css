@@ -1473,6 +1473,83 @@ a {
   line-height: 1.55;
 }
 
+.omen-address-scan {
+  background:
+    radial-gradient(circle at 88% 0%, rgba(117, 255, 159, 0.1), transparent 32%),
+    linear-gradient(135deg, rgba(6, 20, 12, 0.97), rgba(3, 12, 8, 0.94));
+  padding: 24px;
+}
+
+.omen-scan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.omen-scan-item {
+  min-width: 0;
+  min-height: 218px;
+  border: 1px solid rgba(232, 230, 223, 0.1);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.18);
+  padding: 18px;
+}
+
+.omen-scan-step {
+  color: rgba(156, 255, 184, 0.72);
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.omen-scan-item h2 {
+  margin: 14px 0 8px;
+  color: var(--paper);
+  font-size: clamp(22px, 2.2vw, 30px);
+  line-height: 1.08;
+}
+
+.omen-scan-item p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.omen-scan-status {
+  display: block;
+  margin: 0 0 10px;
+  color: #9cffb8;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.omen-scan-status.revoked {
+  color: #ff8d8d;
+}
+
+.omen-scan-status.lapsed,
+.omen-scan-status.pending {
+  color: #ffd27d;
+}
+
+.omen-scan-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 16px;
+  color: rgba(232, 230, 223, 0.48);
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+}
+
+.omen-scan-recommendation {
+  border-color: rgba(117, 255, 159, 0.24);
+  background: linear-gradient(145deg, rgba(21, 70, 40, 0.3), rgba(0, 0, 0, 0.16));
+}
+
 .activity-summary-card {
   display: grid;
   gap: 14px;
@@ -3057,6 +3134,7 @@ a {
   .trust-hero-panel,
   .home-progress-panel,
   .result-grid,
+  .omen-scan-grid,
   .activity-summary-grid,
   .contract-risk-result,
   .contract-source-controls,
