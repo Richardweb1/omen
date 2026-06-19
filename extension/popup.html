@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Omen Pre-Action Scan</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="app-header">
+        <div class="brand-mark" aria-hidden="true">O</div>
+        <div>
+          <p class="eyebrow">OMEN</p>
+          <h1>Pre-Action Scan</h1>
+        </div>
+        <span class="read-only-badge">Read only</span>
+      </header>
+
+      <form id="scan-form" class="scan-form" novalidate>
+        <label for="address">Public address</label>
+        <input
+          id="address"
+          name="address"
+          type="text"
+          inputmode="text"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="0x..."
+          aria-describedby="address-helper address-error"
+        />
+        <p id="address-helper" class="helper">Ritual Chain public address only.</p>
+        <p id="address-error" class="field-error" role="alert" hidden></p>
+        <button id="scan-button" type="submit">Scan with Omen</button>
+      </form>
+
+      <p id="request-status" class="request-status" role="status" aria-live="polite">
+        Enter an address to check its available pre-action context.
+      </p>
+
+      <section id="scan-result" class="result" aria-labelledby="result-title" hidden>
+        <div class="result-heading">
+          <div>
+            <p class="eyebrow">SCAN RESULT</p>
+            <h2 id="result-title">Address context</h2>
+          </div>
+          <span id="decision-badge" class="decision-badge">UNKNOWN</span>
+        </div>
+
+        <p id="result-address" class="result-address"></p>
+
+        <dl class="result-grid">
+          <div>
+            <dt>Address type</dt>
+            <dd id="address-type"></dd>
+          </div>
+          <div>
+            <dt>Omen signal</dt>
+            <dd id="omen-signal"></dd>
+          </div>
+          <div class="wide">
+            <dt id="context-label"></dt>
+            <dd id="context-value"></dd>
+            <p id="context-helper" class="detail-helper"></p>
+          </div>
+        </dl>
+
+        <div class="decision-copy">
+          <p class="section-label">Reason</p>
+          <p id="decision-reason"></p>
+        </div>
+
+        <div class="next-step">
+          <p class="section-label">Next step</p>
+          <p id="next-step"></p>
+        </div>
+
+        <details id="warnings-panel" class="warnings" hidden>
+          <summary>Limits and warnings</summary>
+          <ul id="warnings-list"></ul>
+        </details>
+
+        <a id="full-app-link" class="secondary-link" href="https://omen-ritual.vercel.app" target="_blank" rel="noreferrer noopener">
+          Open full Omen app
+        </a>
+      </section>
+
+      <footer>No wallet access. No signing. No transaction.</footer>
+    </main>
+    <script type="module" src="popup.mjs"></script>
+  </body>
+</html>

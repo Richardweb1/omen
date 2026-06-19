@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Omen Pre-Action Scan",
+  "version": "0.1.0",
+  "description": "Run a read-only Omen scan for a public address before acting.",
+  "action": {
+    "default_title": "Open Omen Scan",
+    "default_popup": "popup.html"
+  },
+  "permissions": [],
+  "host_permissions": [
+    "https://omen-ritual.vercel.app/*",
+    "http://localhost:3000/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'"
+  }
+}
