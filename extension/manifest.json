@@ -3,9 +3,19 @@
   "name": "Omen Pre-Action Scan",
   "version": "0.1.0",
   "description": "Run a read-only Omen scan for a public address before acting.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "action": {
     "default_title": "Open Omen Scan",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
   },
   "permissions": [],
   "host_permissions": [
