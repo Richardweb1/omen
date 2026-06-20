@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   AlertTriangle,
   Database,
@@ -14,8 +14,7 @@ import {
 import { getAddress } from "viem";
 import { useAccount, useConnect, useSignMessage } from "wagmi";
 import { injected } from "wagmi/connectors";
-import TrustReceiptMinter from "@/components/TrustReceiptMinter";
-import { getTrustDomain, trustDomains } from "@/lib/trustDomains";
+import { trustDomains } from "@/lib/trustDomains";
 
 type VerdictValue = "TRUSTED" | "REVOKED" | "PENDING" | "UNSEEN" | "LAPSED";
 
@@ -50,16 +49,15 @@ type TrustResult = {
   };
 };
 
-type AddressActivitySummary = {
+type AddressFeeSummary = {
   address: string;
   outgoingTxCount: number;
-  txCountSource: string;
-  txCountLabel: string;
+  totalFeesRit: string;
+  averageFeeRit: string;
+  highestFeeRit: string;
+  source: string;
   reliability: string;
-  stakeActivity: "Not verified";
-  donationActivity: "Not verified";
-  swapActivity: "Not verified";
-  notes: string;
+  coverage: { from: string; to: string; complete: boolean };
 };
 
 type ContractSourceResponse = {
@@ -116,6 +114,8 @@ const contractSourceNetworks = [
   { label: "BSC", value: "56" },
 ];
 
+const defaultTrustDomain = trustDomains[0];
+
 function shortAddress(address: string) {
   if (address.length < 12) return address;
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -146,10 +146,10 @@ export default function Home() {
   const { signMessageAsync } = useSignMessage();
   const [health, setHealth] = useState<Health | null>(null);
   const [subject, setSubject] = useState("");
-  const [domain, setDomain] = useState(trustDomains[0].value);
+  const domain = defaultTrustDomain.value;
   const [result, setResult] = useState<TrustResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [addressActivity, setAddressActivity] = useState<AddressActivitySummary | null>(null);
+  const [addressActivity, setAddressActivity] = useState<AddressFeeSummary | null>(null);
   const [addressActivityLoading, setAddressActivityLoading] = useState(false);
   const [addressActivityError, setAddressActivityError] = useState("");
   const [contractSource, setContractSource] = useState<ContractSourceResponse | null>(null);
@@ -162,8 +162,6 @@ export default function Home() {
   const [contractRiskError, setContractRiskError] = useState("");
   const [error, setError] = useState("");
 
-  const activeDomain = useMemo(() => getTrustDomain(domain), [domain]);
-
   const updateSubject = (value: string) => {
     setSubject(value);
     setResult(null);
@@ -171,16 +169,6 @@ export default function Home() {
     setAddressActivityError("");
     setContractSource(null);
     setContractSourceError("");
-    setContractRisk(null);
-    setContractRiskError("");
-    setError("");
-  };
-
-  const updateDomain = (value: string) => {
-    setDomain(value);
-    setResult(null);
-    setAddressActivity(null);
-    setAddressActivityError("");
     setContractRisk(null);
     setContractRiskError("");
     setError("");
@@ -296,7 +284,7 @@ export default function Home() {
       const response = await fetch("/api/verdict/read", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, domain, action: activeDomain.action }),
+        body: JSON.stringify({ subject, domain, action: defaultTrustDomain.action }),
       });
       const data = await response.json();
       if (!response.ok || data.error) throw new Error(data.error || "Trust check failed");
@@ -305,10 +293,10 @@ export default function Home() {
       setAddressActivityLoading(true);
       setAddressActivityError("");
       try {
-        const activityResponse = await fetch(`/api/address-activity?address=${encodeURIComponent(data.subject || subject)}`);
+        const activityResponse = await fetch(`/api/address-fees?address=${encodeURIComponent(data.subject || subject)}`);
         const activityData = await activityResponse.json();
         if (!activityResponse.ok || activityData.error) throw new Error(activityData.error || "Activity summary unavailable");
-        setAddressActivity(activityData as AddressActivitySummary);
+        setAddressActivity(activityData as AddressFeeSummary);
       } catch (activityError) {
         setAddressActivity(null);
         setAddressActivityError(activityError instanceof Error ? activityError.message : "Activity summary unavailable");
@@ -331,13 +319,6 @@ export default function Home() {
   const block = health?.block ? health.block.toLocaleString() : "syncing";
   const registry = health?.contracts?.registry || "0xCbB34EB8651dc8f1d65a20165C1166C13f626620";
   const resultStatus = result?.verdict.value || "UNSEEN";
-  const receiptGateLabel = (() => {
-    if (!result) return "Check trust first";
-    if (loading) return "Re-checking registry";
-    if (!result.verdict.hasRecord) return "Registry record required";
-    return "";
-  })();
-  const canMintReceipt = Boolean(result) && !receiptGateLabel;
   const activeContractNetwork = contractSourceNetworks.find((network) => network.value === contractSourceChainId) || contractSourceNetworks[0];
   const verifiedSourceStatus = (() => {
     if (contractSourceLookupLoading) return "Checking...";
@@ -372,7 +353,7 @@ export default function Home() {
     if (addressActivityLoading) return "Reading Ritual activity...";
     if (addressActivity) {
       const count = addressActivity.outgoingTxCount.toLocaleString();
-      return `${count} outgoing transaction${addressActivity.outgoingTxCount === 1 ? "" : "s"}`;
+      return `${addressActivity.totalFeesRit} RIT paid across ${count} outgoing transaction${addressActivity.outgoingTxCount === 1 ? "" : "s"}`;
     }
     return "Activity not available";
   })();
@@ -382,7 +363,7 @@ export default function Home() {
       if (contractSource?.sourceStatus === "not_checked") return "Find verified source or paste Solidity manually to run the checker.";
       return "Paste Solidity manually to run the checker.";
     }
-    if (addressActivity) return "Read from Ritual RPC.";
+    if (addressActivity) return `Calculated from Ritual Explorer indexer data. Average ${addressActivity.averageFeeRit} RIT · highest ${addressActivity.highestFeeRit} RIT.`;
     return addressActivityError || "Ritual activity could not be read for this address.";
   })();
   const scanRecommendedAction = (() => {
@@ -392,8 +373,8 @@ export default function Home() {
       if (contractSource?.sourceStatus === "not_checked") return "Find verified source";
       return "Paste Solidity Manually";
     }
-    if (result?.verdict.hasRecord && (resultStatus === "LAPSED" || !result.verdict.isFresh)) return "Refresh or mint receipt";
-    if (result?.verdict.hasRecord) return "Mint receipt";
+    if (result?.verdict.hasRecord && (resultStatus === "LAPSED" || !result.verdict.isFresh)) return "Review the older Omen signal";
+    if (result?.verdict.hasRecord) return "Use this pre-action context";
     if ((addressActivity?.outgoingTxCount || 0) > 0) return "Create Omen check";
     return "Check another address";
   })();
@@ -405,11 +386,11 @@ export default function Home() {
       return "Omen needs readable Solidity source for a code-level risk check.";
     }
     if (result?.verdict.hasRecord && (resultStatus === "LAPSED" || !result.verdict.isFresh)) {
-      return "This wallet has an older Omen check. Refresh for a newer result, or mint a receipt of the current state.";
+      return "This wallet has an older Omen signal. Review it before an agent or user acts.";
     }
-    if (result?.verdict.hasRecord) return "Save a receipt of the current Omen check.";
+    if (result?.verdict.hasRecord) return "Use the address type, real fee history, and Omen signal before deciding.";
     if ((addressActivity?.outgoingTxCount || 0) > 0) {
-      return "This wallet has Ritual activity but no Omen check yet. Create one before minting a receipt.";
+      return "This wallet has Ritual activity but no Omen signal yet. Review the real activity before acting.";
     }
     return "No Ritual activity or Omen check was found for this wallet.";
   })();
@@ -441,17 +422,7 @@ export default function Home() {
               />
               <p className="field-hint">Paste a wallet or smart contract address.</p>
             </div>
-            <div className="field-grid">
-              <div className="field-row">
-                <label htmlFor="domain">Trust Domain</label>
-                <select id="domain" value={domain} onChange={(event) => updateDomain(event.target.value)}>
-                  {trustDomains.map((item) => (
-                    <option value={item.value} key={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="scan-action-row">
               <button className="trust-submit" type="submit" disabled={loading}>
                 {loading ? <RefreshCw size={18} className="spin-icon" /> : <Search size={18} />}
                 {loading ? "Scanning" : "Run Scan"}
@@ -640,17 +611,17 @@ export default function Home() {
           </section>
         )}
 
-        {result?.verdict.hasRecord && (
-          <TrustReceiptMinter
-            key={`${result.subject}:${result.domain}:${result.verdict.value}:${result.verdict.timestamp}:${result.verdict.isFresh}`}
-            result={result}
-            canMint={canMintReceipt}
-            gateLabel={receiptGateLabel}
-            isRechecking={loading}
-            onRecheck={() => readRegistry(false)}
-            outgoingTxCount={addressActivity?.outgoingTxCount}
-          />
-        )}
+
+        <section className="extension-promo" aria-labelledby="extension-title">
+          <div>
+            <p className="mono-kicker">OMEN BROWSER EXTENSION</p>
+            <h2 id="extension-title">Carry Pre-Action Scan into your browser.</h2>
+            <p>Scan Ritual wallets and contracts without opening the full app. Read-only, with no wallet access or signing.</p>
+          </div>
+          <a className="trust-submit extension-download" href="/omen-extension.zip" download>
+            Download Omen Extension <ExternalLink size={16} />
+          </a>
+        </section>
 
       </section>
     </main>

@@ -70,7 +70,10 @@ Stable success schema:
   "addressType": "wallet | contract | unknown",
   "activity": {
     "outgoingTxCount": 211,
-    "source": "ritual-rpc | unavailable"
+    "totalFeesRit": "0.0421",
+    "averageFeeRit": "0.0002",
+    "highestFeeRit": "0.003",
+    "source": "ritual-explorer-indexer | unavailable"
   },
   "contract": {
     "hasBytecode": false,
@@ -78,14 +81,13 @@ Stable success schema:
     "sourceLookupStatus": "not_applicable | available | unavailable_on_ritual | rpc_unavailable"
   },
   "omen": {
-    "registryStatus": "TRUSTED | REVOKED | PENDING | LAPSED | NO_RECORD | UNAVAILABLE",
-    "receiptAvailable": true
+    "registryStatus": "TRUSTED | REVOKED | PENDING | LAPSED | NO_RECORD | UNAVAILABLE"
   },
   "decision": {
     "value": "ALLOW | REVIEW | BLOCK | UNKNOWN",
     "reason": "Human-readable bounded reason"
   },
-  "nextStep": "scan_contract_source | paste_solidity | mint_receipt | refresh_check | no_action",
+  "nextStep": "scan_contract_source | paste_solidity | refresh_check | no_action",
   "warnings": [],
   "metadata": {
     "timestamp": "ISO-8601",

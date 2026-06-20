@@ -15,11 +15,13 @@ const elements = {
   contextLabel: document.querySelector("#context-label"),
   contextValue: document.querySelector("#context-value"),
   contextHelper: document.querySelector("#context-helper"),
-  reason: document.querySelector("#decision-reason"),
-  nextStep: document.querySelector("#next-step"),
   warningsPanel: document.querySelector("#warnings-panel"),
   warningsList: document.querySelector("#warnings-list"),
   fullAppLink: document.querySelector("#full-app-link"),
+  feeSummary: document.querySelector("#fee-summary"),
+  feeTotal: document.querySelector("#fee-total"),
+  feeAverage: document.querySelector("#fee-average"),
+  feeHighest: document.querySelector("#fee-highest"),
 };
 
 function setFieldError(message = "") {
@@ -53,14 +55,18 @@ function renderResult(scan) {
   elements.resultAddress.textContent = view.address;
   elements.resultAddress.title = view.address;
   elements.decisionBadge.textContent = view.decision;
-  elements.decisionBadge.className = `decision-badge ${view.decision.toLowerCase()}`;
+  elements.decisionBadge.className = `decision-badge ${view.decisionTone}`;
   elements.addressType.textContent = view.addressTypeLabel;
   elements.omenSignal.textContent = view.omenSignal;
   elements.contextLabel.textContent = view.contextLabel;
   elements.contextValue.textContent = view.contextValue;
   elements.contextHelper.textContent = view.contextHelper;
-  elements.reason.textContent = view.reason;
-  elements.nextStep.textContent = view.nextStep;
+  elements.feeSummary.hidden = !view.feeSummary;
+  if (view.feeSummary) {
+    elements.feeTotal.textContent = view.feeSummary.total;
+    elements.feeAverage.textContent = view.feeSummary.average;
+    elements.feeHighest.textContent = view.feeSummary.highest;
+  }
   elements.fullAppLink.href = OMEN_EXTENSION_CONFIG.fullAppUrl;
   renderWarnings(view.warnings);
   elements.result.hidden = false;

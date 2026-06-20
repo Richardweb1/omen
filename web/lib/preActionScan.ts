@@ -1,4 +1,5 @@
 import { createPublicClient, defineChain, getAddress, http, isAddress } from "viem";
+import { getRitualFeeSummary } from "@/lib/ritualFees";
 
 export const PRE_ACTION_SCAN_SCHEMA_VERSION = "1.0" as const;
 export const DEFAULT_SCAN_DOMAIN = "counterparty_trust.ritual_trade_v1";
@@ -6,7 +7,6 @@ const RITUAL_CHAIN_ID = 1979;
 const RITUAL_CHAIN_NAME = "Ritual Chain";
 const RITUAL_PUBLIC_RPC_URL = "https://rpc.ritualfoundation.org";
 const REGISTRY_ADDRESS = "0xCbB34EB8651dc8f1d65a20165C1166C13f626620" as const;
-const TRUST_RECEIPT_ADDRESS = (process.env.NEXT_PUBLIC_OMEN_TRUST_RECEIPT_ADDRESS || "") as `0x${string}` | "";
 const REGISTRY_READ_ABI = [
   {
     name: "readVerdict",
@@ -31,7 +31,6 @@ export type PreActionDecision = "ALLOW" | "REVIEW" | "BLOCK" | "UNKNOWN";
 export type PreActionNextStep =
   | "scan_contract_source"
   | "paste_solidity"
-  | "mint_receipt"
   | "refresh_check"
   | "no_action";
 export type ContractSourceLookupStatus =
@@ -48,7 +47,11 @@ export type PreActionScanResponse = {
   addressType: PreActionAddressType;
   activity: {
     outgoingTxCount?: number;
-    source: "ritual-rpc" | "unavailable";
+    totalFeesRit?: string;
+    averageFeeRit?: string;
+    highestFeeRit?: string;
+    source: "ritual-explorer-indexer" | "unavailable";
+    coverageComplete?: boolean;
   };
   contract: {
     hasBytecode: boolean | null;
@@ -57,7 +60,6 @@ export type PreActionScanResponse = {
   };
   omen: {
     registryStatus: OmenRegistryStatus;
-    receiptAvailable: boolean;
   };
   decision: {
     value: PreActionDecision;
@@ -93,7 +95,6 @@ function chooseDecision(input: {
   addressType: PreActionAddressType;
   registry: RegistryRead;
   sourceAvailable: boolean;
-  receiptAvailable: boolean;
 }) {
   if (input.addressType === "unknown") {
     return {
@@ -124,7 +125,7 @@ function chooseDecision(input: {
   if (input.registry.status === "TRUSTED" && input.registry.isFresh) {
     return {
       decision: { value: "ALLOW" as const, reason: "A current project-level Omen signal exists. This is pre-action context, not a safety guarantee." },
-      nextStep: input.receiptAvailable ? ("mint_receipt" as const) : ("no_action" as const),
+      nextStep: "no_action" as const,
     };
   }
 
@@ -194,13 +195,13 @@ export async function runPreActionScan(addressInput: string): Promise<PreActionS
     warnings.push("OmenRegistry lookup was unavailable.");
   }
 
-  let outgoingTxCount: number | undefined;
+  let feeSummary: Awaited<ReturnType<typeof getRitualFeeSummary>> | undefined;
   if (addressType === "wallet") {
     try {
-      outgoingTxCount = await client.getTransactionCount({ address, blockTag: "latest" });
-      warnings.push("Outgoing transaction count is an RPC nonce and does not include incoming transfers.");
+      feeSummary = await getRitualFeeSummary(address);
+      if (!feeSummary.coverage.complete) warnings.push("Fee coverage reached the indexer pagination safety limit.");
     } catch {
-      warnings.push("Outgoing transaction count was unavailable.");
+      warnings.push("Indexed outgoing transactions and fees were unavailable.");
     }
   }
 
@@ -215,9 +216,7 @@ export async function runPreActionScan(addressInput: string): Promise<PreActionS
     warnings.push("Verified Solidity source lookup is not currently available for Ritual Chain contracts.");
   }
 
-  const receiptConfigured = Boolean(TRUST_RECEIPT_ADDRESS && isAddress(TRUST_RECEIPT_ADDRESS));
-  const receiptAvailable = registry.hasRecord && receiptConfigured;
-  const outcome = chooseDecision({ addressType, registry, sourceAvailable: verifiedSourceAvailable, receiptAvailable });
+  const outcome = chooseDecision({ addressType, registry, sourceAvailable: verifiedSourceAvailable });
 
   return {
     schemaVersion: PRE_ACTION_SCAN_SCHEMA_VERSION,
@@ -225,8 +224,16 @@ export async function runPreActionScan(addressInput: string): Promise<PreActionS
     chainId: RITUAL_CHAIN_ID,
     addressType,
     activity: {
-      ...(outgoingTxCount !== undefined ? { outgoingTxCount } : {}),
-      source: outgoingTxCount !== undefined ? "ritual-rpc" : "unavailable",
+      ...(feeSummary
+        ? {
+            outgoingTxCount: feeSummary.outgoingTxCount,
+            totalFeesRit: feeSummary.totalFeesRit,
+            averageFeeRit: feeSummary.averageFeeRit,
+            highestFeeRit: feeSummary.highestFeeRit,
+            coverageComplete: feeSummary.coverage.complete,
+          }
+        : {}),
+      source: feeSummary ? "ritual-explorer-indexer" : "unavailable",
     },
     contract: {
       hasBytecode,
@@ -235,7 +242,6 @@ export async function runPreActionScan(addressInput: string): Promise<PreActionS
     },
     omen: {
       registryStatus: registry.status,
-      receiptAvailable,
     },
     decision: outcome.decision,
     nextStep: outcome.nextStep,

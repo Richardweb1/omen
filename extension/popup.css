@@ -291,17 +291,44 @@ dd {
   font-size: 11px;
 }
 
-.decision-copy,
-.next-step {
+.fee-summary {
   margin-top: 12px;
   padding: 12px;
-  border-left: 2px solid var(--border-strong);
-  background: rgba(3, 17, 12, 0.72);
+  border: 1px solid var(--border-strong);
+  background: rgba(12, 107, 64, 0.12);
 }
 
-.decision-copy p:last-child,
-.next-step p:last-child {
-  margin: 5px 0 0;
+.fee-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fee-grid > div:first-child {
+  grid-column: 1 / -1;
+}
+
+.fee-grid div {
+  padding: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+}
+
+.fee-grid span,
+.fee-grid strong {
+  display: block;
+}
+
+.fee-grid span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.fee-grid strong {
+  margin-top: 3px;
+  color: var(--green);
+  overflow-wrap: anywhere;
 }
 
 .warnings {

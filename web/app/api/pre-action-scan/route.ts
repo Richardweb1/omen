@@ -14,7 +14,10 @@ function extensionOrigins() {
 function corsOrigin(req: Request) {
   const origin = req.headers.get("origin");
   if (!origin) return null;
-  if (origin === new URL(req.url).origin) return origin;
+  const requestUrl = new URL(req.url);
+  if (origin === requestUrl.origin) return origin;
+  const isLocalRequest = requestUrl.hostname === "localhost" || requestUrl.hostname === "127.0.0.1";
+  if (isLocalRequest && origin.startsWith("chrome-extension://")) return origin;
   return extensionOrigins().includes(origin) ? origin : false;
 }
 

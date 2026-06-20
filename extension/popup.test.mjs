@@ -12,9 +12,15 @@ assert.equal(isValidEvmAddress("not-an-address"), false);
 const walletView = createScanViewModel({
   address: walletAddress,
   addressType: "wallet",
-  activity: { outgoingTxCount: 236, source: "ritual-rpc" },
+  activity: {
+    outgoingTxCount: 236,
+    totalFeesRit: "0.0421",
+    averageFeeRit: "0.00017",
+    highestFeeRit: "0.003",
+    source: "ritual-explorer-indexer",
+  },
   contract: { hasBytecode: false, verifiedSourceAvailable: false, sourceLookupStatus: "not_applicable" },
-  omen: { registryStatus: "LAPSED", receiptAvailable: true },
+  omen: { registryStatus: "LAPSED" },
   decision: { value: "REVIEW", reason: "The Omen signal should be reviewed." },
   nextStep: "refresh_check",
   warnings: [],
@@ -22,14 +28,17 @@ const walletView = createScanViewModel({
 });
 assert.equal(walletView.addressTypeLabel, "Wallet detected");
 assert.equal(walletView.contextValue, "236 outgoing transactions");
-assert.equal(walletView.decision, "REVIEW");
+assert.equal(walletView.decision, "Check carefully");
+assert.equal(walletView.omenSignal, "Needs refresh");
+assert.equal(walletView.feeSummary.total, "0.0421 RIT");
+assert.equal(walletView.feeSummary.highest, "0.003 RIT");
 
 const contractView = createScanViewModel({
   address: contractAddress,
   addressType: "contract",
   activity: { source: "unavailable" },
   contract: { hasBytecode: true, verifiedSourceAvailable: false, sourceLookupStatus: "unavailable_on_ritual" },
-  omen: { registryStatus: "NO_RECORD", receiptAvailable: false },
+  omen: { registryStatus: "NO_RECORD" },
   decision: { value: "REVIEW", reason: "Verified source is unavailable." },
   nextStep: "paste_solidity",
   warnings: [],

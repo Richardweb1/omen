@@ -66,15 +66,14 @@
           </div>
         </dl>
 
-        <div class="decision-copy">
-          <p class="section-label">Reason</p>
-          <p id="decision-reason"></p>
-        </div>
-
-        <div class="next-step">
-          <p class="section-label">Next step</p>
-          <p id="next-step"></p>
-        </div>
+        <section id="fee-summary" class="fee-summary" hidden>
+          <p class="section-label">REAL RITUAL FEES</p>
+          <div class="fee-grid">
+            <div><span>Total paid</span><strong id="fee-total"></strong></div>
+            <div><span>Average fee</span><strong id="fee-average"></strong></div>
+            <div><span>Highest fee</span><strong id="fee-highest"></strong></div>
+          </div>
+        </section>
 
         <details id="warnings-panel" class="warnings" hidden>
           <summary>Limits and warnings</summary>

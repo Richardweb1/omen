@@ -5,9 +5,16 @@ export const walletScanFixture: PreActionScanResponse = {
   address: "0x8A5E192Dee78097D96fEdDf7f61b1Ab17A712234",
   chainId: 1979,
   addressType: "wallet",
-  activity: { outgoingTxCount: 211, source: "ritual-rpc" },
+  activity: {
+    outgoingTxCount: 211,
+    totalFeesRit: "0.0421",
+    averageFeeRit: "0.0002",
+    highestFeeRit: "0.003",
+    source: "ritual-explorer-indexer",
+    coverageComplete: true,
+  },
   contract: { hasBytecode: false, verifiedSourceAvailable: false, sourceLookupStatus: "not_applicable" },
-  omen: { registryStatus: "LAPSED", receiptAvailable: true },
+  omen: { registryStatus: "LAPSED" },
   decision: { value: "REVIEW", reason: "The Omen signal is stale or pending and should be refreshed or reviewed before acting." },
   nextStep: "refresh_check",
   warnings: [
@@ -24,7 +31,7 @@ export const contractScanFixture: PreActionScanResponse = {
   addressType: "contract",
   activity: { source: "unavailable" },
   contract: { hasBytecode: true, verifiedSourceAvailable: false, sourceLookupStatus: "unavailable_on_ritual" },
-  omen: { registryStatus: "NO_RECORD", receiptAvailable: false },
+  omen: { registryStatus: "NO_RECORD" },
   decision: { value: "REVIEW", reason: "Contract bytecode was found, but verified source lookup is unavailable on Ritual Chain." },
   nextStep: "paste_solidity",
   warnings: [

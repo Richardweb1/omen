@@ -3179,3 +3179,49 @@ a {
     font-size: 42px;
   }
 }
+.extension-promo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  align-items: center;
+  margin-top: 18px;
+  padding: 24px;
+  border: 1px solid rgba(83, 238, 154, 0.42);
+  background: linear-gradient(120deg, rgba(7, 36, 24, 0.96), rgba(3, 18, 13, 0.94));
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.24);
+}
+
+.extension-promo h2 {
+  margin: 6px 0 8px;
+  color: #f2f8f4;
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+}
+
+.extension-promo p:last-child {
+  max-width: 680px;
+  margin: 0;
+  color: #a9c3b4;
+}
+
+.extension-download {
+  width: auto;
+  min-width: 220px;
+  text-decoration: none;
+}
+
+@media (max-width: 760px) {
+  .extension-promo {
+    grid-template-columns: 1fr;
+  }
+
+  .extension-download {
+    width: 100%;
+  }
+}
+.scan-action-row {
+  display: block;
+}
+
+.scan-action-row .trust-submit {
+  width: 100%;
+}

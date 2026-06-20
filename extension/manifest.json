@@ -10,7 +10,8 @@
   "permissions": [],
   "host_permissions": [
     "https://omen-ritual.vercel.app/*",
-    "http://localhost:3000/*"
+    "http://localhost:3000/*",
+    "http://localhost:3013/*"
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'none'"
