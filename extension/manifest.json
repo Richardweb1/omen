@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Omen Pre-Action Scan",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtkCHS0t1OamGwQbOaKXvg27yjoB1pWzSNx2mCbO5eJVQ0YqV9DBrXPGvJSzMWhcQsYdovXfukrdnywTwCXR2WhFX9lyrUVwVf7DJ1ec4hS0dgNu0yyo4t3r0ZkKFHcTPx2Cfcjhiz06rgt22cfc6JfQNMTvr/DlMsCJz8cwLKP5tlCXBhaGtoBsG7Fpjf1XsKarVuTi8Wo2A42C/SG1Top8RHXMerbGlgC2XxnkBjF1OaTIKCV3vaPAVhKKk6eracY//Z6xbkphAiriTjnp1OBMGMiyXkBmFwTMTj8NcnuZMcFwFu89CWTMZXWAJEYjrMZDco/Zu5ixtdW+EvMnhewIDAQAB",
   "description": "Run a read-only Omen scan for a public address before acting.",
   "icons": {
     "16": "icons/icon-16.png",
