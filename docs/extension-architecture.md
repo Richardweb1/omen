@@ -69,6 +69,8 @@ Stable success schema:
   "chainId": 1979,
   "addressType": "wallet | contract | unknown",
   "activity": {
+    "balanceRit": "4.5",
+    "balanceSource": "ritual-rpc | unavailable",
     "outgoingTxCount": 211,
     "totalFeesRit": "0.0421",
     "averageFeeRit": "0.0002",

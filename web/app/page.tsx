@@ -51,6 +51,8 @@ type TrustResult = {
 
 type AddressFeeSummary = {
   address: string;
+  balanceRit?: string;
+  balanceSource: string;
   outgoingTxCount: number;
   totalFeesRit: string;
   averageFeeRit: string;
@@ -352,8 +354,7 @@ export default function Home() {
     }
     if (addressActivityLoading) return "Reading Ritual activity...";
     if (addressActivity) {
-      const count = addressActivity.outgoingTxCount.toLocaleString();
-      return `${addressActivity.totalFeesRit} RIT paid across ${count} outgoing transaction${addressActivity.outgoingTxCount === 1 ? "" : "s"}`;
+      return addressActivity.balanceRit ? `${addressActivity.balanceRit} RIT balance` : "Ritual balance unavailable";
     }
     return "Activity not available";
   })();
@@ -363,7 +364,10 @@ export default function Home() {
       if (contractSource?.sourceStatus === "not_checked") return "Find verified source or paste Solidity manually to run the checker.";
       return "Paste Solidity manually to run the checker.";
     }
-    if (addressActivity) return `Calculated from Ritual Explorer indexer data. Average ${addressActivity.averageFeeRit} RIT · highest ${addressActivity.highestFeeRit} RIT.`;
+    if (addressActivity) {
+      const count = addressActivity.outgoingTxCount.toLocaleString();
+      return `${count} outgoing transaction${addressActivity.outgoingTxCount === 1 ? "" : "s"} · ${addressActivity.totalFeesRit} RIT fees paid. Balance: Ritual RPC. Fees: Ritual Explorer indexer.`;
+    }
     return addressActivityError || "Ritual activity could not be read for this address.";
   })();
   const scanRecommendedAction = (() => {

@@ -46,6 +46,8 @@ export type PreActionScanResponse = {
   chainId: number;
   addressType: PreActionAddressType;
   activity: {
+    balanceRit?: string;
+    balanceSource: "ritual-rpc" | "unavailable";
     outgoingTxCount?: number;
     totalFeesRit?: string;
     averageFeeRit?: string;
@@ -226,13 +228,15 @@ export async function runPreActionScan(addressInput: string): Promise<PreActionS
     activity: {
       ...(feeSummary
         ? {
+            ...(feeSummary.balanceRit ? { balanceRit: feeSummary.balanceRit } : {}),
+            balanceSource: feeSummary.balanceRit ? ("ritual-rpc" as const) : ("unavailable" as const),
             outgoingTxCount: feeSummary.outgoingTxCount,
             totalFeesRit: feeSummary.totalFeesRit,
             averageFeeRit: feeSummary.averageFeeRit,
             highestFeeRit: feeSummary.highestFeeRit,
             coverageComplete: feeSummary.coverage.complete,
           }
-        : {}),
+        : { balanceSource: "unavailable" as const }),
       source: feeSummary ? "ritual-explorer-indexer" : "unavailable",
     },
     contract: {

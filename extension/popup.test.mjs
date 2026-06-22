@@ -13,6 +13,8 @@ const walletView = createScanViewModel({
   address: walletAddress,
   addressType: "wallet",
   activity: {
+    balanceRit: "4.5",
+    balanceSource: "ritual-rpc",
     outgoingTxCount: 236,
     totalFeesRit: "0.0421",
     averageFeeRit: "0.00017",
@@ -31,6 +33,7 @@ assert.equal(walletView.contextValue, "236 outgoing transactions");
 assert.equal(walletView.decision, "Check carefully");
 assert.equal(walletView.omenSignal, "Needs refresh");
 assert.equal(walletView.feeSummary.total, "0.0421 RIT");
+assert.equal(walletView.feeSummary.balance, "4.5 RIT");
 assert.equal(walletView.feeSummary.highest, "0.003 RIT");
 
 const contractView = createScanViewModel({

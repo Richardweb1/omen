@@ -6,6 +6,8 @@ export const walletScanFixture: PreActionScanResponse = {
   chainId: 1979,
   addressType: "wallet",
   activity: {
+    balanceRit: "4.5",
+    balanceSource: "ritual-rpc",
     outgoingTxCount: 211,
     totalFeesRit: "0.0421",
     averageFeeRit: "0.0002",
@@ -29,7 +31,7 @@ export const contractScanFixture: PreActionScanResponse = {
   address: "0xCbB34EB8651dc8f1d65a20165C1166C13f626620",
   chainId: 1979,
   addressType: "contract",
-  activity: { source: "unavailable" },
+  activity: { balanceSource: "unavailable", source: "unavailable" },
   contract: { hasBytecode: true, verifiedSourceAvailable: false, sourceLookupStatus: "unavailable_on_ritual" },
   omen: { registryStatus: "NO_RECORD" },
   decision: { value: "REVIEW", reason: "Contract bytecode was found, but verified source lookup is unavailable on Ritual Chain." },

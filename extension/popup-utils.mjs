@@ -57,6 +57,7 @@ export function createScanViewModel(scan) {
   const isContract = addressType === "contract";
   const outgoingTxCount = scan?.activity?.outgoingTxCount;
   const totalFeesRit = scan?.activity?.totalFeesRit;
+  const balanceRit = scan?.activity?.balanceRit;
   const sourceStatus = scan?.contract?.sourceLookupStatus;
 
   return {
@@ -89,6 +90,7 @@ export function createScanViewModel(scan) {
     timestamp: String(scan?.metadata?.timestamp || ""),
     feeSummary: isWallet && typeof totalFeesRit === "string"
       ? {
+          balance: typeof balanceRit === "string" ? `${balanceRit} RIT` : "Unavailable",
           total: `${totalFeesRit} RIT`,
           average: `${scan.activity.averageFeeRit || "0"} RIT`,
           highest: `${scan.activity.highestFeeRit || "0"} RIT`,

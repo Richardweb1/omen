@@ -19,6 +19,7 @@ const elements = {
   warningsList: document.querySelector("#warnings-list"),
   fullAppLink: document.querySelector("#full-app-link"),
   feeSummary: document.querySelector("#fee-summary"),
+  walletBalance: document.querySelector("#wallet-balance"),
   feeTotal: document.querySelector("#fee-total"),
   feeAverage: document.querySelector("#fee-average"),
   feeHighest: document.querySelector("#fee-highest"),
@@ -63,6 +64,7 @@ function renderResult(scan) {
   elements.contextHelper.textContent = view.contextHelper;
   elements.feeSummary.hidden = !view.feeSummary;
   if (view.feeSummary) {
+    elements.walletBalance.textContent = view.feeSummary.balance;
     elements.feeTotal.textContent = view.feeSummary.total;
     elements.feeAverage.textContent = view.feeSummary.average;
     elements.feeHighest.textContent = view.feeSummary.highest;

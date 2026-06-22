@@ -1,6 +1,7 @@
 import { formatEther, getAddress, isAddress } from "viem";
 
 const INDEXER_URL = "https://explorer.ritualfoundation.org/api/indexer-proxy/api/v1";
+const PUBLIC_RITUAL_RPC_URL = "https://rpc.ritualfoundation.org";
 const RITUAL_GENESIS_DATE = "2026-03-22";
 const PAGE_LIMIT = 1000;
 const MAX_PAGES_PER_WINDOW = 20;
@@ -19,6 +20,9 @@ type IndexedPage = {
 
 export type RitualFeeSummary = {
   address: `0x${string}`;
+  balanceWei?: string;
+  balanceRit?: string;
+  balanceSource: "Ritual RPC" | "unavailable";
   outgoingTxCount: number;
   totalFeesWei: string;
   totalFeesRit: string;
@@ -28,6 +32,11 @@ export type RitualFeeSummary = {
   reliability: string;
   coverage: { from: string; to: string; complete: boolean };
   calculatedAt: string;
+};
+
+type RpcBalanceResponse = {
+  result?: string;
+  error?: { message?: string };
 };
 
 function dateOnly(date: Date) {
@@ -78,10 +87,27 @@ async function readWindow(address: string, from: string, to: string) {
   return { transactions, complete: false };
 }
 
+async function readBalance(address: string) {
+  const response = await fetch(process.env.RITUAL_RPC_URL || PUBLIC_RITUAL_RPC_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBalance", params: [address, "latest"] }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`Ritual RPC returned HTTP ${response.status}.`);
+  const payload = (await response.json()) as RpcBalanceResponse;
+  if (!payload.result || payload.error) throw new Error(payload.error?.message || "Ritual balance is unavailable.");
+  return BigInt(payload.result);
+}
+
 export async function getRitualFeeSummary(addressInput: string): Promise<RitualFeeSummary> {
   if (!isAddress(addressInput)) throw new Error("address must be a valid EVM address.");
   const address = getAddress(addressInput);
-  const results = await Promise.all(windows().map((window) => readWindow(address, window.from, window.to)));
+  const [results, balanceResult] = await Promise.all([
+    Promise.all(windows().map((window) => readWindow(address, window.from, window.to))),
+    readBalance(address).then((value) => ({ value })).catch(() => null),
+  ]);
   const unique = new Map<string, IndexedTransaction>();
   for (const result of results) {
     for (const transaction of result.transactions) unique.set(transaction.tx_hash, transaction);
@@ -101,6 +127,8 @@ export async function getRitualFeeSummary(addressInput: string): Promise<RitualF
   const complete = results.every((result) => result.complete);
   return {
     address,
+    ...(balanceResult ? { balanceWei: balanceResult.value.toString(), balanceRit: displayRit(balanceResult.value) } : {}),
+    balanceSource: balanceResult ? "Ritual RPC" : "unavailable",
     outgoingTxCount: count,
     totalFeesWei: total.toString(),
     totalFeesRit: displayRit(total),
