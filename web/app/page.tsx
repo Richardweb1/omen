@@ -621,6 +621,7 @@ export default function Home() {
             <p className="mono-kicker">OMEN BROWSER EXTENSION</p>
             <h2 id="extension-title">Carry Pre-Action Scan into your browser.</h2>
             <p>Scan Ritual wallets and contracts without opening the full app. Read-only, with no wallet access or signing.</p>
+            <a className="extension-privacy-link" href="/privacy">Privacy Policy</a>
           </div>
           <a className="trust-submit extension-download" href="/omen-extension.zip" download>
             Download Omen Extension <ExternalLink size={16} />

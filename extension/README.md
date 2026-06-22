@@ -29,6 +29,12 @@ OMEN_EXTENSION_ORIGINS=chrome-extension://YOUR_EXTENSION_ID
 
 Restart the local server after changing the environment. A hosted extension requires the same origin in the hosted environment and a new web deployment before production scans will work. Do not use a wildcard origin.
 
+The published privacy policy is available at:
+
+```text
+https://omen-ritual.vercel.app/privacy
+```
+
 ## Verify
 
 Run the dependency-free fixture and permission checks:

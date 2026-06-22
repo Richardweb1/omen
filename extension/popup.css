@@ -374,6 +374,13 @@ footer {
   font-size: 11px;
 }
 
+footer a {
+  display: block;
+  width: max-content;
+  margin: 5px auto 0;
+  color: var(--green);
+}
+
 [hidden] {
   display: none !important;
 }
